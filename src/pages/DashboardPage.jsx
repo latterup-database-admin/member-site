@@ -1,106 +1,147 @@
-import { ArrowRight, BookOpen, CalendarDays, HandHeart, Megaphone, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowRight, BookOpen, CalendarDays, CreditCard, HandHeart, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import StatusRow from '../components/StatusRow'
+import AnnouncementsPanel from '../components/dashboard/AnnouncementsPanel'
+import QuickLinksPanel from '../components/dashboard/QuickLinksPanel'
+import RegistrationOverview from '../components/dashboard/RegistrationOverview'
+import StudentSchedules from '../components/dashboard/StudentSchedules'
+import { loadDashboardData, previewDashboardData } from '../data/dashboard'
 
 const quickLinks = [
-  { to: '/classes', label: 'Browse Classes', icon: BookOpen },
-  { to: '/directory', label: 'Member Directory', icon: Users },
-  { to: '/contributions', label: 'Contributions', icon: HandHeart },
-  { to: '/registration', label: 'Registration', icon: CalendarDays },
+  { to: '/classes', label: 'Browse Classes', detail: 'Search the current catalog', icon: BookOpen, accent: 'text-brand-gold' },
+  { to: '/registration', label: 'Registration', detail: 'Enroll students & waitlists', icon: CalendarDays, accent: 'text-brand-sky' },
+  { to: '/contributions', label: 'Contributions', detail: 'Opportunities & approvals', icon: HandHeart, accent: 'text-brand-junior' },
+  { to: '/directory', label: 'Directory', detail: 'Find Latter UP families', icon: Users, accent: 'text-brand-sky' },
 ]
 
 export default function DashboardPage() {
-  const { portalContext } = useAuth()
+  const { portalContext, isDevPreview } = useAuth()
   const person = portalContext?.person
-  const household = portalContext?.households?.[0]
   const firstName = person?.preferred_name || person?.first_name || 'Member'
+  const [dashboardData, setDashboardData] = useState(isDevPreview ? previewDashboardData : null)
+  const [loading, setLoading] = useState(!isDevPreview)
+  const [loadError, setLoadError] = useState(null)
+
+  useEffect(() => {
+    if (isDevPreview) {
+      setDashboardData(previewDashboardData)
+      setLoading(false)
+      return
+    }
+
+    let active = true
+    setLoading(true)
+    loadDashboardData(portalContext)
+      .then((data) => {
+        if (!active) return
+        setDashboardData(data || previewDashboardData)
+        setLoadError(null)
+      })
+      .catch((error) => {
+        if (!active) return
+        console.error('Dashboard data failed to load:', error)
+        setLoadError(error.message)
+        setDashboardData(previewDashboardData)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [portalContext, isDevPreview])
+
+  const data = dashboardData || previewDashboardData
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-brand-sand/45 bg-white p-6 shadow-sm sm:p-8">
-        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-junior">Members Portal</p>
-        <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="brand-title text-3xl text-brand-navy sm:text-4xl">Welcome, {firstName}</h1>
-            <p className="mt-1 font-medium text-brand-taupe">{household?.family_name ? `${household.family_name} household` : 'Your Latter UP dashboard'}</p>
+      {isDevPreview && (
+        <div className="rounded-xl border border-brand-gold/45 bg-brand-gold/10 px-4 py-3 text-sm font-semibold text-brand-navy">
+          Local preview mode is on. This dashboard is using sample family data until Google sign-in is configured.
+        </div>
+      )}
+
+      {loadError && !isDevPreview && (
+        <div className="rounded-xl border border-brand-junior/40 bg-brand-junior/10 px-4 py-3 text-sm font-semibold text-brand-navy">
+          Live dashboard data could not load, so preview content is showing: {loadError}
+        </div>
+      )}
+
+      <section className="relative overflow-hidden rounded-2xl bg-brand-navy p-6 text-white shadow-sm sm:p-8">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-brand-sky/15" />
+        <div className="absolute -bottom-24 right-24 h-48 w-48 rounded-full bg-brand-gold/10" />
+        <div className="relative">
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-gold">Latter UP Members Portal</p>
+          <div className="mt-3 flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <h1 className="brand-title text-4xl leading-none sm:text-5xl">Welcome, {firstName}</h1>
+              <p className="mt-3 max-w-xl text-base font-medium text-white/75">
+                {data.household.familyName} · Everything your family needs for the current Latter UP year.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider">
+                {person?.member_type || 'Parent'}
+              </span>
+              {loading && <span className="rounded-full bg-brand-sky/20 px-3 py-1.5 text-xs font-bold">Updating…</span>}
+            </div>
           </div>
-          <span className="rounded-full bg-brand-sky/20 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider text-brand-navy">{person?.member_type || 'member'}</span>
         </div>
       </section>
 
       <section>
-        <h2 className="brand-title mb-3 text-xl text-brand-navy">Important Links</h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {quickLinks.map(({ to, label, icon: Icon }) => (
-            <Link key={to} to={to} className="focus-ring group rounded-xl bg-brand-navy p-4 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-              <Icon size={26} className="text-brand-gold" />
-              <span className="mt-5 flex items-end justify-between gap-2 font-bold">
-                {label}
-                <ArrowRight size={16} className="transition group-hover:translate-x-1" />
-              </span>
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-junior">Start here</p>
+            <h2 className="brand-title text-2xl text-brand-navy">Important Links</h2>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {quickLinks.map(({ to, label, detail, icon: Icon, accent }) => (
+            <Link key={to} to={to} className="focus-ring group rounded-2xl border border-brand-sand/45 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-sky hover:shadow-md">
+              <div className="flex items-start justify-between gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand-navy">
+                  <Icon size={20} className={accent} />
+                </div>
+                <ArrowRight size={17} className="mt-1 text-brand-taupe transition group-hover:translate-x-1 group-hover:text-brand-navy" />
+              </div>
+              <p className="mt-4 font-extrabold text-brand-navy">{label}</p>
+              <p className="mt-0.5 text-sm text-brand-taupe">{detail}</p>
             </Link>
           ))}
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.45fr_.85fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(290px,.75fr)]">
         <div className="space-y-6">
-          <section className="rounded-2xl border border-brand-sand/45 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-junior">Registration</p>
-                <h2 className="brand-title mt-1 text-2xl text-brand-navy">Your registration status</h2>
-              </div>
-              <CalendarDays className="text-brand-sky" />
-            </div>
-            <div className="mt-4">
-              <StatusRow label="Annual membership" value="Connect data next" ok={false} />
-              <StatusRow label="Membership dues" value="Connect data next" ok={false} />
-              <StatusRow label="Contribution" value="Connect data next" ok={false} />
-              <StatusRow label="Registration window" value="Connect data next" ok={false} />
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-brand-sand/45 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-sky">Family</p>
-                <h2 className="brand-title mt-1 text-2xl text-brand-navy">My students' schedule</h2>
-              </div>
-              <Users className="text-brand-gold" />
-            </div>
-            <div className="mt-4 rounded-xl border border-dashed border-brand-sand bg-brand-sand/10 p-6 text-center">
-              <p className="font-bold text-brand-navy">Household members are connected.</p>
-              <p className="mt-1 text-sm">Student schedules will be the next live dashboard query.</p>
-            </div>
-          </section>
+          <RegistrationOverview
+  registration={data?.registration ?? {}}
+  membership={data?.membership ?? {}}
+/>
+          <StudentSchedules
+  students={data?.household?.students ?? []}
+/>
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-2xl border border-brand-sand/45 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Megaphone size={19} className="text-brand-junior" />
-              <h2 className="brand-title text-xl text-brand-navy">Announcements</h2>
+          <div className="rounded-2xl border border-brand-sand/45 bg-white p-5 shadow-sm">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-gold">Account balance</p>
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <div>
+                <p className="brand-title text-4xl text-brand-navy">${data.finance.balance.toFixed(2)}</p>
+                <p className="mt-1 text-sm text-brand-taupe">{data.finance.dueItems} {data.finance.dueItems === 1 ? 'item' : 'items'} due</p>
+              </div>
+              <CreditCard className="mb-1 text-brand-sky" />
             </div>
-            <div className="mt-4 rounded-xl bg-brand-sky/10 p-4">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-brand-junior">Coming next</p>
-              <p className="mt-1 font-bold text-brand-navy">Board-editable portal content</p>
-              <p className="mt-1 text-sm leading-relaxed">Announcements, events, links, and homepage cards will be managed without editing code.</p>
-            </div>
-          </section>
+            <Link to="/payments" className="focus-ring mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-brand-navy hover:text-brand-junior">
+              View payments <ArrowRight size={15} />
+            </Link>
+          </div>
 
-          <section className="rounded-2xl border border-brand-sand/45 bg-white p-5 shadow-sm">
-            <h2 className="brand-title text-xl text-brand-navy">Quick Links</h2>
-            <div className="mt-3 divide-y divide-brand-sand/25">
-              {['Important Dates', 'Members Handbook', 'Class Catalog', 'Support & FAQs'].map((item) => (
-                <button key={item} className="focus-ring flex w-full items-center justify-between py-3 text-left text-sm font-bold text-brand-navy hover:text-brand-junior">
-                  {item}
-                  <ArrowRight size={15} />
-                </button>
-              ))}
-            </div>
-          </section>
+          <AnnouncementsPanel announcements={data.announcements} />
+          <QuickLinksPanel />
         </aside>
       </div>
     </div>

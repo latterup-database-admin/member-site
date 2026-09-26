@@ -1,55 +1,46 @@
 # Latter UP Members Portal
 
-React + Vite + JavaScript + Tailwind CSS + Supabase, deployed on Netlify.
+React + Vite + JavaScript + Tailwind + Supabase member portal.
 
 ## Local setup
 
-1. Install Node.js 20+.
-2. Run `npm install`.
-3. Copy `.env.example` to `.env.local`.
-4. Add your Supabase project URL and anon/publishable key.
-5. In Supabase Auth, enable Google and configure its Google OAuth client.
-6. Add your local and Netlify callback URLs to Supabase Auth redirect URLs.
-7. Run `npm run dev`.
-
-## Environment variables
-
-```
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_ANON_KEY=...
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
 ```
 
-The browser app must never contain the Supabase service-role key.
+On Windows PowerShell:
 
-## Current routes
+```powershell
+Copy-Item .env.example .env.local
+```
 
-- `/login`
-- `/dashboard`
-- `/classes`
-- `/registration`
-- `/contributions`
-- `/payments`
-- `/directory`
-- `/account`
+Add your Supabase browser values to `.env.local`:
 
-## Auth flow
+```env
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
+```
 
-After Google OAuth, the app calls:
+## Preview the dashboard before Google OAuth is ready
 
-- `link_current_auth_user()`
-- `get_my_portal_context()`
+For local development only, add this to `.env.local`:
 
-These were created in Migration 008.
+```env
+VITE_DEV_PREVIEW=true
+```
 
-## Brand
+Then restart `npm run dev` and open `/dashboard`.
 
-The Tailwind theme uses the Latter UP Brand Visual Identity Guidelines:
+Preview mode is guarded by `import.meta.env.DEV`, so it does not activate in a production Vite build even if the variable were accidentally configured there. It is for UI development only and is not authentication.
 
-- Navy `#001f55`
-- Sand `#c7b299`
-- Taupe `#736357`
-- Sky Blue `#9dc4cb`
-- Golden Accent `#e1a730`
-- Junior Accent `#f4716d`
+## Production auth
 
-Body text uses Barlow Semi Condensed with Barlow Condensed for title-like display text.
+When Google OAuth is configured, remove or set:
+
+```env
+VITE_DEV_PREVIEW=false
+```
+
+The normal portal flow uses Supabase Auth, `link_current_auth_user()`, `get_my_portal_context()`, and database RLS.

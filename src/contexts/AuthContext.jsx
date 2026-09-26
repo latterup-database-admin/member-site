@@ -3,13 +3,42 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
+const isDevPreview = import.meta.env.DEV && import.meta.env.VITE_DEV_PREVIEW === 'true'
+
+const devPortalContext = {
+  linked: true,
+  person: {
+    id: 'preview-parent',
+    preferred_name: 'Erika',
+    first_name: 'Erika',
+    last_name: 'Preview',
+    member_type: 'parent',
+    status: 'active',
+  },
+  roles: ['site_admin', 'parent'],
+  households: [
+    {
+      id: 'preview-household',
+      family_name: 'Sample Family',
+      can_manage: true,
+      is_primary_contact: true,
+    },
+  ],
+}
+
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(null)
-  const [portalContext, setPortalContext] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [session, setSession] = useState(isDevPreview ? { user: { id: 'preview-auth-user' } } : null)
+  const [portalContext, setPortalContext] = useState(isDevPreview ? devPortalContext : null)
+  const [loading, setLoading] = useState(!isDevPreview)
   const [error, setError] = useState(null)
 
   async function loadPortalContext(activeSession) {
+    if (isDevPreview) {
+      setPortalContext(devPortalContext)
+      setLoading(false)
+      return
+    }
+
     if (!activeSession) {
       setPortalContext(null)
       setLoading(false)
@@ -39,6 +68,8 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    if (isDevPreview) return undefined
+
     let mounted = true
 
     supabase.auth.getSession().then(({ data }) => {
@@ -59,6 +90,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function signInWithGoogle() {
+    if (isDevPreview) return
+
     setError(null)
     const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -71,6 +104,8 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    if (isDevPreview) return
+
     setError(null)
     await supabase.auth.signOut()
     setPortalContext(null)
@@ -84,6 +119,7 @@ export function AuthProvider({ children }) {
     error,
     signInWithGoogle,
     signOut,
+    isDevPreview,
   }), [session, portalContext, loading, error])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
