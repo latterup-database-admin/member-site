@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
 import ProtectedRoute from './components/ProtectedRoute'
 import AccessPendingPage from './pages/AccessPendingPage'
+import ClassesPage from './pages/ClassesPage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import PlaceholderPage from './pages/PlaceholderPage'
@@ -22,7 +23,7 @@ export default function App() {
 
       <Route element={<ProtectedShell />}>
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/classes" element={<PlaceholderPage title="Classes" description="Browse the class catalog by program, term/session, age group, day, and time." />} />
+        <Route path="/classes" element={<ClassesPage />} />
         <Route path="/registration" element={<PlaceholderPage title="Registration" description="Register your students, see class limits, join waitlists, and review schedule conflicts." />} />
         <Route path="/contributions" element={<PlaceholderPage title="Contributions" description="Browse opportunities, apply, and track your household's approved contribution benefits." />} />
         <Route path="/payments" element={<PlaceholderPage title="Payments" description="View membership dues, class fees, balances, and payment history." />} />
