@@ -6,6 +6,7 @@ import ClassesPage from './pages/ClassesPage'
 import DashboardPage from './pages/DashboardPage'
 import LoginPage from './pages/LoginPage'
 import PlaceholderPage from './pages/PlaceholderPage'
+import PaymentsPage from './pages/PaymentsPage'
 
 function ProtectedShell() {
   return (
@@ -26,7 +27,7 @@ export default function App() {
         <Route path="/classes" element={<ClassesPage />} />
         <Route path="/registration" element={<PlaceholderPage title="Registration" description="Register your students, see class limits, join waitlists, and review schedule conflicts." />} />
         <Route path="/contributions" element={<PlaceholderPage title="Contributions" description="Browse opportunities, apply, and track your household's approved contribution benefits." />} />
-        <Route path="/payments" element={<PlaceholderPage title="Payments" description="View membership dues, class fees, balances, and payment history." />} />
+        <Route path="/payments" element={<PaymentsPage title="Payments" description="View membership dues, class fees, balances, and payment history." />} />
         <Route path="/directory" element={<PlaceholderPage title="Member Directory" description="The member directory will combine Workspace identities with Supabase profile and privacy data." />} />
         <Route path="/account" element={<PlaceholderPage title="Account & Family" description="Manage household details, member preferences, and directory privacy settings." />} />
       </Route>

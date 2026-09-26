@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -6,232 +7,186 @@ import {
   Loader2,
   LockKeyhole,
   Users,
-} from 'lucide-react'
+} from "lucide-react";
 
 import {
   getRegistrationContext,
   getRegistrationPreview,
   registerStudentForOffering,
-} from '../../data/registration'
+} from "../../data/registration";
 
 function normalizeProgram(value) {
-  return String(value ?? '').toLowerCase()
+  return String(value ?? "").toLowerCase();
 }
 
 function formatProgram(value) {
-  const program = normalizeProgram(value)
+  const program = normalizeProgram(value);
 
-  if (program === 'junior') return 'Junior'
-  if (program === 'youth') return 'Youth'
+  if (program === "junior") return "Junior";
+  if (program === "youth") return "Youth";
 
-  return value ?? ''
+  return value ?? "";
 }
 
 function formatTime(value) {
-  if (!value) return ''
+  if (!value) return "";
 
-  const [hours, minutes] = String(value).split(':')
-  const date = new Date()
+  const [hours, minutes] = String(value).split(":");
+  const date = new Date();
 
-  date.setHours(
-    Number(hours),
-    Number(minutes),
-    0,
-    0
-  )
+  date.setHours(Number(hours), Number(minutes), 0, 0);
 
   return date.toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export default function RegistrationPanel({
   offering,
   onRegistrationComplete,
 }) {
-  const [students, setStudents] = useState([])
-  const [selectedStudentId, setSelectedStudentId] =
-    useState('')
+  const [students, setStudents] = useState([]);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
 
-  const [loadingStudents, setLoadingStudents] =
-    useState(true)
+  const [loadingStudents, setLoadingStudents] = useState(true);
 
-  const [loadingPreview, setLoadingPreview] =
-    useState(false)
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
-  const [submitting, setSubmitting] =
-    useState(false)
+  const [submitting, setSubmitting] = useState(false);
 
-  const [preview, setPreview] = useState(null)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
+  const [preview, setPreview] = useState(null);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
-  const program = normalizeProgram(
-    offering?.program
-  )
+  const program = normalizeProgram(offering?.program);
 
   const eligibleStudents = useMemo(
     () =>
       students.filter(
-        (student) =>
-          normalizeProgram(student.member_type) ===
-          program
+        (student) => normalizeProgram(student.member_type) === program,
       ),
-    [students, program]
-  )
+    [students, program],
+  );
 
   useEffect(() => {
-    let active = true
+    let active = true;
 
     async function loadStudents() {
       try {
-        setLoadingStudents(true)
-        setError('')
+        setLoadingStudents(true);
+        setError("");
 
-        const context =
-          await getRegistrationContext()
+        const context = await getRegistrationContext();
 
-        if (!active) return
+        if (!active) return;
 
-        setStudents(
-          context?.students ?? []
-        )
+        setStudents(context?.students ?? []);
       } catch (err) {
-        if (!active) return
+        if (!active) return;
 
-        setError(
-          err?.message ??
-            'Unable to load students.'
-        )
+        setError(err?.message ?? "Unable to load students.");
       } finally {
         if (active) {
-          setLoadingStudents(false)
+          setLoadingStudents(false);
         }
       }
     }
 
-    loadStudents()
+    loadStudents();
 
     return () => {
-      active = false
-    }
-  }, [])
-
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedStudentId) {
-      setPreview(null)
-      setResult(null)
-      return
+      setPreview(null);
+      setResult(null);
+      return;
     }
 
-    let active = true
+    let active = true;
 
     async function loadPreview() {
       try {
-        setLoadingPreview(true)
-        setError('')
-        setResult(null)
+        setLoadingPreview(true);
+        setError("");
+        setResult(null);
 
-        const nextPreview =
-          await getRegistrationPreview(
-            selectedStudentId,
-            offering
-          )
+        const nextPreview = await getRegistrationPreview(
+          selectedStudentId,
+          offering,
+        );
 
-        if (!active) return
+        if (!active) return;
 
-        setPreview(nextPreview)
+        setPreview(nextPreview);
       } catch (err) {
-        if (!active) return
+        if (!active) return;
 
-        setError(
-          err?.message ??
-            'Unable to check registration eligibility.'
-        )
+        setError(err?.message ?? "Unable to check registration eligibility.");
       } finally {
         if (active) {
-          setLoadingPreview(false)
+          setLoadingPreview(false);
         }
       }
     }
 
-    loadPreview()
+    loadPreview();
 
     return () => {
-      active = false
-    }
-  }, [
-    selectedStudentId,
-    offering,
-  ])
+      active = false;
+    };
+  }, [selectedStudentId, offering]);
 
-
-  async function submit({
-    joinWaitlist = false,
-  } = {}) {
-    if (!selectedStudentId) return
+  async function submit({ joinWaitlist = false } = {}) {
+    if (!selectedStudentId) return;
 
     try {
-      setSubmitting(true)
-      setError('')
+      setSubmitting(true);
+      setError("");
 
-      const response =
-        await registerStudentForOffering({
-          studentId:
-            selectedStudentId,
+      const response = await registerStudentForOffering({
+        studentId: selectedStudentId,
 
-          offering,
+        offering,
 
-          joinWaitlistIfFull:
-            joinWaitlist,
-        })
+        joinWaitlistIfFull: joinWaitlist,
+      });
 
-      setResult(response)
+      setResult(response);
 
       if (
-        response?.result === 'enrolled' ||
-        response?.result === 'waitlisted'
+        response?.result === "enrolled" ||
+        response?.result === "waitlisted"
       ) {
-        onRegistrationComplete?.(
-          response
-        )
+        onRegistrationComplete?.(response);
 
-        const refreshed =
-          await getRegistrationPreview(
-            selectedStudentId,
-            offering
-          )
+        const refreshed = await getRegistrationPreview(
+          selectedStudentId,
+          offering,
+        );
 
-        setPreview(refreshed)
+        setPreview(refreshed);
       }
     } catch (err) {
-      setError(
-        err?.message ??
-          'Registration could not be completed.'
-      )
+      setError(err?.message ?? "Registration could not be completed.");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
+  const conflicts = preview?.schedule_conflicts ?? [];
 
-  const conflicts =
-    preview?.schedule_conflicts ?? []
+  const blocked = preview && !preview.eligible;
 
-  const blocked =
-    preview &&
-    !preview.eligible
+  const alreadyEnrolled = preview?.already_enrolled;
 
-  const alreadyEnrolled =
-    preview?.already_enrolled
+  const alreadyWaitlisted = preview?.already_waitlisted;
 
-  const alreadyWaitlisted =
-    preview?.already_waitlisted
-
-  const isFull =
-    preview?.is_full
+  const isFull = preview?.is_full;
 
   return (
     <section className="mt-6 overflow-hidden rounded-2xl border border-brand-sand/45 bg-stone-50">
@@ -245,25 +200,21 @@ export default function RegistrationPanel({
         </h3>
 
         <p className="mt-1 text-sm text-brand-taupe">
-          Select a {formatProgram(program)} student
-          to check eligibility, capacity, and
-          schedule conflicts.
+          Select a {formatProgram(program)} student to check eligibility,
+          capacity, and schedule conflicts.
         </p>
       </div>
 
       <div className="space-y-4 p-4 sm:p-5">
         {loadingStudents ? (
           <div className="flex items-center gap-2 text-sm font-semibold text-brand-taupe">
-            <Loader2
-              size={16}
-              className="animate-spin"
-            />
+            <Loader2 size={16} className="animate-spin" />
             Loading your students…
           </div>
         ) : eligibleStudents.length === 0 ? (
           <div className="rounded-xl bg-white p-4 text-sm text-brand-taupe">
-            No {formatProgram(program)} students are
-            available in your household.
+            No {formatProgram(program)} students are available in your
+            household.
           </div>
         ) : (
           <label className="block">
@@ -273,42 +224,26 @@ export default function RegistrationPanel({
 
             <select
               value={selectedStudentId}
-              onChange={(event) =>
-                setSelectedStudentId(
-                  event.target.value
-                )
-              }
+              onChange={(event) => setSelectedStudentId(event.target.value)}
               className="focus-ring w-full rounded-xl border border-brand-sand/60 bg-white px-3 py-2.5 font-semibold text-brand-navy"
             >
-              <option value="">
-                Choose a student…
-              </option>
+              <option value="">Choose a student…</option>
 
-              {eligibleStudents.map(
-                (student) => (
-                  <option
-                    key={student.id}
-                    value={student.id}
-                  >
-                    {student.name}
-                  </option>
-                )
-              )}
+              {eligibleStudents.map((student) => (
+                <option key={student.id} value={student.id}>
+                  {student.name}
+                </option>
+              ))}
             </select>
           </label>
         )}
 
-
         {loadingPreview && (
           <div className="flex items-center gap-2 text-sm font-semibold text-brand-taupe">
-            <Loader2
-              size={16}
-              className="animate-spin"
-            />
+            <Loader2 size={16} className="animate-spin" />
             Checking registration…
           </div>
         )}
-
 
         {preview && (
           <div className="space-y-3">
@@ -317,20 +252,17 @@ export default function RegistrationPanel({
                 <div className="flex items-center gap-2 text-brand-navy">
                   <Users size={16} />
 
-                  <span className="text-sm font-extrabold">
-                    Availability
-                  </span>
+                  <span className="text-sm font-extrabold">Availability</span>
                 </div>
 
                 <p className="mt-1 text-sm text-brand-taupe">
                   {preview.is_full
-                    ? 'Class is currently full.'
+                    ? "Class is currently full."
                     : preview.max_enrollment == null
-                      ? 'Space available.'
+                      ? "Space available."
                       : `${Math.max(
-                          preview.max_enrollment -
-                            preview.enrolled_count,
-                          0
+                          preview.max_enrollment - preview.enrolled_count,
+                          0,
                         )} seats remaining`}
                 </p>
               </div>
@@ -339,38 +271,29 @@ export default function RegistrationPanel({
                 <div className="flex items-center gap-2 text-brand-navy">
                   <CircleDollarSign size={16} />
 
-                  <span className="text-sm font-extrabold">
-                    Class fee
-                  </span>
+                  <span className="text-sm font-extrabold">Class fee</span>
                 </div>
 
                 <p className="mt-1 text-sm text-brand-taupe">
-                  {Number(
-                    preview.fee ?? 0
-                  ) === 0
-                    ? 'No class fee'
-                    : `$${Number(
-                        preview.fee
-                      ).toFixed(2)}`}
+                  {Number(preview.fee ?? 0) === 0
+                    ? "No class fee"
+                    : `$${Number(preview.fee).toFixed(2)}`}
                 </p>
               </div>
             </div>
 
-
-            {program === 'junior' && (
+            {program === "junior" && (
               <div className="rounded-xl border border-brand-sky/40 bg-brand-sky/10 p-3 text-sm">
                 <strong className="text-brand-navy">
                   Junior class allowance:
-                </strong>{' '}
-
+                </strong>{" "}
                 <span className="text-brand-taupe">
                   {preview.unlimited_classes
-                    ? 'Unlimited through your approved contribution.'
+                    ? "Unlimited through your approved contribution."
                     : `${preview.current_junior_class_count ?? 0} of ${preview.class_limit ?? 2} classes currently registered.`}
                 </span>
               </div>
             )}
-
 
             {blocked && (
               <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
@@ -391,7 +314,6 @@ export default function RegistrationPanel({
               </div>
             )}
 
-
             {conflicts.length > 0 && (
               <div className="rounded-xl border border-brand-gold/45 bg-brand-gold/10 p-3">
                 <div className="flex gap-2">
@@ -406,28 +328,21 @@ export default function RegistrationPanel({
                     </p>
 
                     <p className="mt-0.5 text-sm text-brand-taupe">
-                      You may still register, but this class
-                      overlaps with:
+                      You may still register, but this class overlaps with:
                     </p>
 
                     <ul className="mt-2 space-y-1 text-sm font-semibold text-brand-navy">
-                      {conflicts.map(
-                        (conflict, index) => (
-                          <li key={index}>
-                            {conflict.course_title}{' '}
-                            —{' '}
-                            {formatTime(
-                              conflict.conflicting_start_time
-                            )}
-                          </li>
-                        )
-                      )}
+                      {conflicts.map((conflict, index) => (
+                        <li key={index}>
+                          {conflict.course_title} —{" "}
+                          {formatTime(conflict.conflicting_start_time)}
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 </div>
               </div>
             )}
-
 
             {alreadyEnrolled && (
               <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
@@ -436,21 +351,15 @@ export default function RegistrationPanel({
               </div>
             )}
 
-
             {alreadyWaitlisted && (
               <div className="rounded-xl border border-brand-sand bg-white p-3 text-sm font-bold text-brand-navy">
                 This student is already on the waitlist.
               </div>
             )}
 
-
-            {result?.result ===
-              'enrolled' && (
+            {result?.result === "enrolled" && (
               <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                <CheckCircle2
-                  size={18}
-                  className="shrink-0 text-emerald-700"
-                />
+                <CheckCircle2 size={18} className="shrink-0 text-emerald-700" />
 
                 <div>
                   <p className="font-extrabold text-emerald-900">
@@ -459,71 +368,76 @@ export default function RegistrationPanel({
 
                   <p className="text-sm text-emerald-800">
                     The seat has been secured.
-                    {Number(
-                      result.fee_amount ?? 0
-                    ) > 0 &&
-                      ' The class fee has been added to your account.'}
+                    {Number(result.fee_amount ?? 0) > 0 &&
+                      " The class fee has been added to your account."}
                   </p>
                 </div>
+                {Number(result.fee_amount ?? 0) > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link
+                      to="/payments"
+                      className="focus-ring rounded-lg bg-brand-navy px-3 py-2 text-xs font-extrabold text-white"
+                    >
+                      Pay now
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => setResult(null)}
+                      className="focus-ring rounded-lg border border-brand-sand bg-white px-3 py-2 text-xs font-extrabold text-brand-navy"
+                    >
+                      Pay later
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-
-            {result?.result ===
-              'waitlisted' && (
+            {result?.result === "waitlisted" && (
               <div className="rounded-xl border border-brand-sky bg-brand-sky/10 p-3">
                 <p className="font-extrabold text-brand-navy">
                   Added to waitlist
                 </p>
 
                 <p className="text-sm text-brand-taupe">
-                  Current position:{' '}
-                  {result.waitlist_position}
+                  Current position: {result.waitlist_position}
                 </p>
               </div>
             )}
 
-
-            {!blocked &&
-              !alreadyEnrolled &&
-              !alreadyWaitlisted && (
-                <div>
-                  {isFull ? (
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={() =>
-                        submit({
-                          joinWaitlist: true,
-                        })
-                      }
-                      className="focus-ring inline-flex items-center justify-center rounded-lg bg-brand-sky px-4 py-2.5 text-sm font-extrabold text-brand-navy transition hover:brightness-95 disabled:opacity-60"
-                    >
-                      {submitting
-                        ? 'Joining…'
-                        : 'Join waitlist'}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={() =>
-                        submit()
-                      }
-                      className="focus-ring inline-flex items-center justify-center rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#00153a] disabled:opacity-60"
-                    >
-                      {submitting
-                        ? 'Registering…'
-                        : conflicts.length > 0
-                          ? 'Register anyway'
-                          : 'Register for this class'}
-                    </button>
-                  )}
-                </div>
-              )}
+            {!blocked && !alreadyEnrolled && !alreadyWaitlisted && (
+              <div>
+                {isFull ? (
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() =>
+                      submit({
+                        joinWaitlist: true,
+                      })
+                    }
+                    className="focus-ring inline-flex items-center justify-center rounded-lg bg-brand-sky px-4 py-2.5 text-sm font-extrabold text-brand-navy transition hover:brightness-95 disabled:opacity-60"
+                  >
+                    {submitting ? "Joining…" : "Join waitlist"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => submit()}
+                    className="focus-ring inline-flex items-center justify-center rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#00153a] disabled:opacity-60"
+                  >
+                    {submitting
+                      ? "Registering…"
+                      : conflicts.length > 0
+                        ? "Register anyway"
+                        : "Register for this class"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
-
 
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
@@ -532,5 +446,5 @@ export default function RegistrationPanel({
         )}
       </div>
     </section>
-  )
+  );
 }
