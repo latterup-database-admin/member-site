@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700;800&family=Meddon&display=swap');
+
+@theme {
+  --color-brand-navy: #001f55;
+  --color-brand-sand: #c7b299;
+  --color-brand-taupe: #736357;
+  --color-brand-sky: #9dc4cb;
+  --color-brand-gold: #e1a730;
+  --color-brand-junior: #f4716d;
+
+  --font-body: "Barlow Semi Condensed", sans-serif;
+  --font-condensed: "Barlow Condensed", sans-serif;
+  --font-script: "Meddon", cursive;
+}
+
+:root {
+  font-family: var(--font-body);
+  color: var(--color-brand-taupe);
+  background: #f8f8f6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; background: #f8f8f6; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, textarea, select { font: inherit; }
+a { color: inherit; }
+
+::selection {
+  background: color-mix(in srgb, var(--color-brand-sky) 50%, white);
+  color: var(--color-brand-navy);
+}
+
+.brand-title {
+  font-family: var(--font-condensed);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.focus-ring:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-brand-sky) 70%, white);
+  outline-offset: 2px;
+}
