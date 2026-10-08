@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -6,107 +6,109 @@ import {
   CreditCard,
   HandHeart,
   Users,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import AnnouncementsPanel from '../components/dashboard/AnnouncementsPanel'
-import QuickLinksPanel from '../components/dashboard/QuickLinksPanel'
-import RegistrationOverview from '../components/dashboard/RegistrationOverview'
-import StudentSchedules from '../components/dashboard/StudentSchedules'
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import AnnouncementsPanel from "../components/dashboard/AnnouncementsPanel";
+import QuickLinksPanel from "../components/dashboard/QuickLinksPanel";
+import RegistrationOverview from "../components/dashboard/RegistrationOverview";
+import StudentSchedules from "../components/dashboard/StudentSchedules";
 import {
   emptyDashboardData,
   loadDashboardData,
   previewDashboardData,
-} from '../data/dashboard'
+} from "../data/dashboard";
 
 const quickLinks = [
   {
-    to: '/classes',
-    label: 'Browse Classes',
-    detail: 'Search the current catalog',
+    to: "/classes",
+    label: "Browse Classes",
+    detail: "Search the current catalog",
     icon: BookOpen,
-    accent: 'text-brand-gold',
+    accent: "text-brand-gold",
   },
   {
-    to: '/registration',
-    label: 'Registration',
-    detail: 'Enroll students & waitlists',
+    to: "/registration",
+    label: "Registration",
+    detail: "Enroll students & waitlists",
     icon: CalendarDays,
-    accent: 'text-brand-sky',
+    accent: "text-brand-sky",
   },
   {
-    to: '/contributions',
-    label: 'Contributions',
-    detail: 'Opportunities & approvals',
+    to: "/contributions",
+    label: "Contributions",
+    detail: "Opportunities & approvals",
     icon: HandHeart,
-    accent: 'text-brand-junior',
+    accent: "text-brand-junior",
   },
   {
-    to: '/directory',
-    label: 'Directory',
-    detail: 'Find Latter UP families',
+    to: "/directory",
+    label: "Directory",
+    detail: "Find Latter UP families",
     icon: Users,
-    accent: 'text-brand-sky',
+    accent: "text-brand-sky",
   },
-]
+];
 
 export default function DashboardPage() {
-  const { portalContext, isDevPreview } = useAuth()
-  const person = portalContext?.person
-  const firstName = person?.preferred_name || person?.first_name || 'Member'
+  const { portalContext, isDevPreview } = useAuth();
+  const person = portalContext?.person;
+  const firstName = person?.preferred_name || person?.first_name || "Member";
 
   const [dashboardData, setDashboardData] = useState(
     isDevPreview ? previewDashboardData : emptyDashboardData,
-  )
-  const [loading, setLoading] = useState(!isDevPreview)
-  const [loadError, setLoadError] = useState(null)
+  );
+  const [loading, setLoading] = useState(!isDevPreview);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
     if (isDevPreview) {
-      setDashboardData(previewDashboardData)
-      setLoadError(null)
-      setLoading(false)
-      return
+      setDashboardData(previewDashboardData);
+      setLoadError(null);
+      setLoading(false);
+      return;
     }
 
-    let active = true
+    let active = true;
 
-    setLoading(true)
-    setLoadError(null)
+    setLoading(true);
+    setLoadError(null);
 
     loadDashboardData(portalContext)
       .then((data) => {
-        if (!active) return
-        setDashboardData(data ?? emptyDashboardData)
+        if (!active) return;
+        setDashboardData(data ?? emptyDashboardData);
       })
       .catch((error) => {
-        if (!active) return
-        console.error('Dashboard data failed to load:', error)
-        setLoadError(error.message)
-        setDashboardData(emptyDashboardData)
+        if (!active) return;
+        console.error("Dashboard data failed to load:", error);
+        setLoadError(error.message);
+        setDashboardData(emptyDashboardData);
       })
       .finally(() => {
-        if (active) setLoading(false)
-      })
+        if (active) setLoading(false);
+      });
 
     return () => {
-      active = false
-    }
-  }, [portalContext, isDevPreview])
+      active = false;
+    };
+  }, [portalContext, isDevPreview]);
 
-  const data = dashboardData ?? emptyDashboardData
+  const data = dashboardData ?? emptyDashboardData;
 
   return (
     <div className="space-y-6">
       {isDevPreview && (
         <div className="rounded-xl border border-brand-gold/45 bg-brand-gold/10 px-4 py-3 text-sm font-semibold text-brand-navy">
-          Local preview mode is on. This dashboard is using sample family data until Google sign-in is configured.
+          Local preview mode is on. This dashboard is using sample family data
+          until Google sign-in is configured.
         </div>
       )}
 
       {loadError && !isDevPreview && (
         <div className="rounded-xl border border-brand-junior/40 bg-brand-junior/10 px-4 py-3 text-sm font-semibold text-brand-navy">
-          We couldn't load your dashboard data. No sample member data is being shown. {loadError}
+          We couldn't load your dashboard data. No sample member data is being
+          shown. {loadError}
         </div>
       )}
 
@@ -126,13 +128,14 @@ export default function DashboardPage() {
               </h1>
 
               <p className="mt-3 max-w-xl text-base font-medium text-white/75">
-                {data?.household?.familyName ?? 'Your Family'} · Everything your family needs for the current Latter UP year.
+                {data?.household?.familyName ?? "Your Family"} · Everything your
+                family needs for the current Latter UP year.
               </p>
             </div>
 
             <div className="flex gap-2">
               <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider">
-                {person?.member_type || 'Parent'}
+                {person?.member_type || "Parent"}
               </span>
 
               {loading && (
@@ -189,12 +192,58 @@ export default function DashboardPage() {
             membership={data?.membership ?? {}}
           />
 
-          <StudentSchedules
-            students={data?.household?.students ?? []}
-          />
+          <StudentSchedules students={data?.household?.students ?? []} />
         </div>
 
         <aside className="space-y-6">
+          <div className="rounded-2xl border border-brand-sand/45 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-junior">
+                  Annual Profile Review
+                </p>
+
+                <p className="mt-2 text-lg font-extrabold text-brand-navy">
+                  {data?.annualReview?.complete ? "Complete" : "Action needed"}
+                </p>
+              </div>
+
+              <CalendarDays className="text-brand-sky" />
+            </div>
+
+            <p className="mt-2 text-sm text-brand-taupe">
+              {data?.annualReview?.complete
+                ? `Your family review is complete for ${data?.membership?.schoolYear ?? "this school year"}.`
+                : data?.annualReview?.profilesNeedingReview > 0
+                  ? `${data.annualReview.profilesNeedingReview} ${
+                      data.annualReview.profilesNeedingReview === 1
+                        ? "profile needs"
+                        : "profiles need"
+                    } review.`
+                  : "Your family information still needs review."}
+            </p>
+
+            {data?.annualReview?.missingDobCount > 0 && (
+              <p className="mt-2 text-sm font-bold text-brand-junior">
+                {data.annualReview.missingDobCount}{" "}
+                {data.annualReview.missingDobCount === 1
+                  ? "student is"
+                  : "students are"}{" "}
+                missing a birth date.
+              </p>
+            )}
+
+            <Link
+              to="/annual-profile-review"
+              className="focus-ring mt-4 inline-flex items-center gap-2 text-sm font-extrabold text-brand-navy hover:text-brand-junior"
+            >
+              {data?.annualReview?.complete
+                ? "View family profile"
+                : "Review family information"}
+
+              <ArrowRight size={15} />
+            </Link>
+          </div>
           <div className="rounded-2xl border border-brand-sand/45 bg-white p-5 shadow-sm">
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-gold">
               Account balance
@@ -207,8 +256,8 @@ export default function DashboardPage() {
                 </p>
 
                 <p className="mt-1 text-sm text-brand-taupe">
-                  {data?.finance?.dueItems ?? 0}{' '}
-                  {(data?.finance?.dueItems ?? 0) === 1 ? 'item' : 'items'} due
+                  {data?.finance?.dueItems ?? 0}{" "}
+                  {(data?.finance?.dueItems ?? 0) === 1 ? "item" : "items"} due
                 </p>
               </div>
 
@@ -223,13 +272,11 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <AnnouncementsPanel
-            announcements={data?.announcements ?? []}
-          />
+          <AnnouncementsPanel announcements={data?.announcements ?? []} />
 
           <QuickLinksPanel />
         </aside>
       </div>
     </div>
-  )
+  );
 }

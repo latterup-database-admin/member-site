@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   Bell,
@@ -7,14 +7,18 @@ import {
   CreditCard,
   HandHeart,
   Home,
+  GraduationCap,
   Menu,
   Search,
   Settings,
+  ShieldCheck,
   UserRound,
   Users,
   X,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { usePermissions } from '../contexts/PermissionContext'
+import { loadMyTeacherClasses } from '../data/teacherClasses'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: Home },
@@ -26,8 +30,20 @@ const navItems = [
   { to: '/account', label: 'Account', icon: Settings },
 ]
 
-function NavItems({ closeMenu }) {
-  return navItems.map(({ to, label, icon: Icon }) => (
+function NavItems({ closeMenu, isAdmin, hasTeacherClasses }) {
+  const memberItems = hasTeacherClasses
+    ? [
+        ...navItems.slice(0, 2),
+        { to: '/my-classes', label: 'My Classes', icon: GraduationCap },
+        ...navItems.slice(2),
+      ]
+    : navItems
+
+  const items = isAdmin
+    ? [...memberItems, { to: '/admin', label: 'Admin', icon: ShieldCheck }]
+    : memberItems
+
+  return items.map(({ to, label, icon: Icon }) => (
     <NavLink
       key={to}
       to={to}
@@ -47,9 +63,31 @@ function NavItems({ closeMenu }) {
 
 export default function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [hasTeacherClasses, setHasTeacherClasses] = useState(false)
   const { portalContext, signOut } = useAuth()
+  const { isAdmin } = usePermissions()
   const person = portalContext?.person
   const name = person?.preferred_name || person?.first_name || 'Member'
+
+  useEffect(() => {
+    let active = true
+
+    async function checkTeacherClasses() {
+      try {
+        const rows = await loadMyTeacherClasses()
+        if (active) setHasTeacherClasses(rows.length > 0)
+      } catch (error) {
+        console.error('Failed to check teacher classes for navigation', error)
+        if (active) setHasTeacherClasses(false)
+      }
+    }
+
+    checkTeacherClasses()
+
+    return () => {
+      active = false
+    }
+  }, [person?.id])
 
   return (
     <div className="min-h-screen bg-stone-50 text-brand-taupe">
@@ -97,7 +135,7 @@ export default function AppShell() {
       <div className="mx-auto flex max-w-[1600px]">
         <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 border-r border-brand-sand/35 bg-white p-4 lg:block">
           <nav className="space-y-1">
-            <NavItems />
+            <NavItems isAdmin={isAdmin} hasTeacherClasses={hasTeacherClasses} />
           </nav>
           <div className="mt-8 rounded-xl border border-brand-sand/45 bg-brand-sand/10 p-4">
             <p className="text-xs font-bold uppercase tracking-wider text-brand-junior">Need help?</p>
@@ -122,7 +160,11 @@ export default function AppShell() {
               </button>
             </div>
             <nav className="space-y-1">
-              <NavItems closeMenu={() => setMobileOpen(false)} />
+              <NavItems
+                closeMenu={() => setMobileOpen(false)}
+                isAdmin={isAdmin}
+                hasTeacherClasses={hasTeacherClasses}
+              />
             </nav>
           </aside>
         </div>

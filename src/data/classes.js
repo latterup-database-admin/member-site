@@ -149,6 +149,19 @@ export async function loadClassCatalog() {
 }
 
 function normalizeOffering(row) {
+  const meetings = (row.meetings || []).map((meeting) => ({
+    dayOfWeek: meeting.day_of_week,
+    startTime: meeting.start_time,
+    durationMinutes: meeting.duration_minutes,
+    timezone: meeting.timezone,
+  }))
+
+  const scheduleMode =
+    row.schedule_mode ||
+    (row.offering_period === 'year_long' && meetings.length === 0
+      ? 'flexible'
+      : 'scheduled')
+
   return {
     id: row.id,
     courseId: row.course_id,
@@ -172,12 +185,8 @@ function normalizeOffering(row) {
     maximumAge: row.maximum_age,
     ageExceptionNotes: row.age_exception_notes,
     status: row.status,
-    meetings: (row.meetings || []).map((meeting) => ({
-      dayOfWeek: meeting.day_of_week,
-      startTime: meeting.start_time,
-      durationMinutes: meeting.duration_minutes,
-      timezone: meeting.timezone,
-    })),
+    scheduleMode,
+    meetings,
     instructors: (row.instructors || []).map((instructor) => ({
       name: instructor.name,
       role: instructor.role,
