@@ -7,6 +7,8 @@ import {
   Clock3,
   Loader2,
   RefreshCw,
+  RotateCcw,
+  Ban,
   X,
 } from "lucide-react";
 
@@ -14,6 +16,8 @@ import { usePermissions } from "../contexts/PermissionContext";
 import {
   approveAdminClassProposal,
   loadAdminClassProposals,
+  loadClassProposalReviewHistory,
+  reviewAdminClassProposal,
 } from "../data/adminClassProposals";
 
 const STATUS_FILTERS = [
@@ -21,6 +25,7 @@ const STATUS_FILTERS = [
   { value: "all", label: "All" },
   { value: "submitted", label: "Submitted" },
   { value: "under_review", label: "Under review" },
+  { value: "revision_requested", label: "Revision requested" },
   { value: "approved", label: "Approved" },
   { value: "denied", label: "Denied" },
   { value: "withdrawn", label: "Withdrawn" },
@@ -102,7 +107,7 @@ function ClassProposalsSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [approvingId, setApprovingId] = useState(null);
+  const [actionId, setActionId] = useState(null);
 
   async function refresh() {
     setLoading(true);
@@ -280,25 +285,33 @@ function ClassProposalsSection() {
             setActionError("");
           }}
           canApprove={hasPermission("admin.classes.approve")}
-          approving={approvingId === selectedProposal.id}
+          acting={actionId === selectedProposal.id}
           actionError={actionError}
-          onApprove={async (reviewNotes) => {
+          onDecision={async (action, reviewNotes) => {
             setActionError("");
-            setApprovingId(selectedProposal.id);
+            setActionId(selectedProposal.id);
 
             try {
-              await approveAdminClassProposal(
-                selectedProposal.id,
-                reviewNotes,
-              );
+              if (action === "approved") {
+                await approveAdminClassProposal(
+                  selectedProposal.id,
+                  reviewNotes,
+                );
+              } else {
+                await reviewAdminClassProposal(
+                  selectedProposal.id,
+                  action,
+                  reviewNotes,
+                );
+              }
               await refresh();
             } catch (err) {
-              console.error("Failed to approve class proposal", err);
+              console.error("Failed to review class proposal", err);
               setActionError(
-                err?.message || "This proposal could not be approved.",
+                err?.message || "This proposal could not be reviewed.",
               );
             } finally {
-              setApprovingId(null);
+              setActionId(null);
             }
           }}
         />
@@ -350,11 +363,15 @@ function ProposalDetailDrawer({
   proposal,
   onClose,
   canApprove,
-  approving,
+  acting,
   actionError,
-  onApprove,
+  onDecision,
 }) {
   const [reviewNotes, setReviewNotes] = useState(proposal.review_notes || "");
+  const [pendingAction, setPendingAction] = useState(null);
+  const [reviewHistory, setReviewHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState("");
   const teachers = Array.isArray(proposal.teachers)
     ? proposal.teachers
     : [];
@@ -367,7 +384,28 @@ function ProposalDetailDrawer({
 
   useEffect(() => {
     setReviewNotes(proposal.review_notes || "");
+    setPendingAction(null);
   }, [proposal.id, proposal.review_notes]);
+
+  useEffect(() => {
+    let active = true;
+    setHistoryLoading(true);
+    setHistoryError("");
+
+    loadClassProposalReviewHistory(proposal.id)
+      .then((rows) => {
+        if (active) setReviewHistory(rows);
+      })
+      .catch((err) => {
+        console.error("Failed to load proposal review history", err);
+        if (active) setHistoryError(err?.message || "Review history could not be loaded.");
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [proposal.id, proposal.status, proposal.reviewed_at]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -557,25 +595,49 @@ function ProposalDetailDrawer({
           </DetailGroup>
         )}
 
-        {(proposal.reviewed_at || proposal.review_notes) && (
-          <DetailGroup title="Review history">
-            <div className="rounded-xl border border-brand-sand/30 bg-brand-sand/5 p-4 text-sm text-brand-taupe">
-              {proposal.reviewed_at && (
-                <div>
-                  Reviewed {formatDateTime(proposal.reviewed_at)}
-                  {proposal.reviewed_by_name
-                    ? ` by ${proposal.reviewed_by_name}`
-                    : ""}
-                </div>
-              )}
-              {proposal.review_notes && (
-                <div className="mt-2 whitespace-pre-wrap leading-relaxed">
-                  {proposal.review_notes}
-                </div>
-              )}
+        <DetailGroup title="Review history">
+          {historyLoading ? (
+            <div className="flex items-center gap-2 text-sm text-brand-taupe">
+              <Loader2 size={15} className="animate-spin" />
+              Loading review history…
             </div>
-          </DetailGroup>
-        )}
+          ) : historyError ? (
+            <div className="rounded-xl border border-brand-junior/30 bg-brand-junior/5 p-3 text-xs text-brand-navy">
+              {historyError}
+            </div>
+          ) : reviewHistory.length === 0 ? (
+            <EmptyValue>No review activity yet.</EmptyValue>
+          ) : (
+            <div className="space-y-2">
+              {reviewHistory.map((event) => (
+                <div
+                  key={event.id}
+                  className="rounded-xl border border-brand-sand/30 bg-brand-sand/5 p-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm font-extrabold text-brand-navy">
+                      {reviewActionLabel(event.action)}
+                    </div>
+                    <div className="text-[11px] text-brand-taupe">
+                      {formatDateTime(event.created_at)}
+                    </div>
+                  </div>
+                  <div className="mt-1 text-xs text-brand-taupe">
+                    {event.actor_name || "System"}
+                    {event.from_status && event.to_status
+                      ? ` · ${titleCase(event.from_status)} → ${titleCase(event.to_status)}`
+                      : ""}
+                  </div>
+                  {event.notes && (
+                    <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-brand-navy">
+                      {event.notes}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </DetailGroup>
 
         {['submitted', 'under_review'].includes(proposal.status) && (
           <DetailGroup title="Review decision">
@@ -585,7 +647,10 @@ function ProposalDetailDrawer({
                   htmlFor={`review-notes-${proposal.id}`}
                   className="text-xs font-extrabold text-brand-navy"
                 >
-                  Review note <span className="font-normal text-brand-taupe">(optional)</span>
+                  Review note
+                  <span className="ml-1 font-normal text-brand-taupe">
+                    Required for revision requests and denials
+                  </span>
                 </label>
 
                 <textarea
@@ -593,8 +658,8 @@ function ProposalDetailDrawer({
                   value={reviewNotes}
                   onChange={(event) => setReviewNotes(event.target.value)}
                   rows={3}
-                  disabled={approving}
-                  placeholder="Add a note for the proposal record…"
+                  disabled={acting}
+                  placeholder="Add context for the teacher and proposal history…"
                   className="focus-ring mt-2 w-full rounded-xl border border-brand-sand/45 bg-white px-3 py-2 text-sm text-brand-navy shadow-sm placeholder:text-brand-taupe/55 disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
@@ -605,33 +670,114 @@ function ProposalDetailDrawer({
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="max-w-md text-xs leading-relaxed text-brand-taupe">
-                  Approval confirms this teaching contribution. It does not publish a catalog class or create Google Classroom resources.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => onApprove(reviewNotes)}
-                  disabled={!canApprove || approving}
-                  className="focus-ring inline-flex items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {approving ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
+              {pendingAction ? (
+                <div className="rounded-xl border border-brand-navy/20 bg-white p-4">
+                  <div className="text-sm font-extrabold text-brand-navy">
+                    {confirmationTitle(pendingAction)}
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-brand-taupe">
+                    {confirmationDescription(pendingAction)}
+                  </p>
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPendingAction(null)}
+                      disabled={acting}
+                      className="focus-ring rounded-xl border border-brand-sand/50 bg-white px-3 py-2 text-xs font-extrabold text-brand-navy disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDecision(pendingAction, reviewNotes)}
+                      disabled={acting}
+                      className={`focus-ring inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-extrabold text-white disabled:opacity-50 ${
+                        pendingAction === 'denied'
+                          ? 'bg-[#9f3d39]'
+                          : pendingAction === 'revision_requested'
+                            ? 'bg-brand-gold text-brand-navy'
+                            : 'bg-brand-navy'
+                      }`}
+                    >
+                      {acting && <Loader2 size={14} className="animate-spin" />}
+                      Confirm {decisionButtonLabel(pendingAction)}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPendingAction('approved')}
+                    disabled={!canApprove || acting}
+                    className="focus-ring inline-flex items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-extrabold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                  >
                     <CheckCircle2 size={16} />
-                  )}
-                  {approving ? 'Approving…' : 'Approve proposal'}
-                </button>
-              </div>
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingAction('revision_requested')}
+                    disabled={!canApprove || acting || !reviewNotes.trim()}
+                    className="focus-ring inline-flex items-center gap-2 rounded-xl border border-brand-gold/60 bg-white px-4 py-2.5 text-sm font-extrabold text-brand-navy disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <RotateCcw size={16} />
+                    Return for revision
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingAction('denied')}
+                    disabled={!canApprove || acting || !reviewNotes.trim()}
+                    className="focus-ring inline-flex items-center gap-2 rounded-xl border border-brand-junior/45 bg-white px-4 py-2.5 text-sm font-extrabold text-[#9f3d39] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Ban size={16} />
+                    Deny
+                  </button>
+                </div>
+              )}
+
+              <p className="text-xs leading-relaxed text-brand-taupe">
+                Approval advances the existing approval workflow. Returning for revision keeps this proposal open so the teacher can edit and resubmit the same record. Denial closes the proposal.
+              </p>
 
               {!canApprove && (
                 <p className="text-xs font-bold text-brand-taupe">
-                  Your current role can view proposals but cannot approve them.
+                  Your current role can view proposals but cannot review them.
                 </p>
               )}
             </div>
           </DetailGroup>
+        )}
+
+        {proposal.status === 'revision_requested' && (
+          <div className="rounded-xl border border-brand-gold/45 bg-brand-gold/10 p-4">
+            <div className="flex items-center gap-2 text-sm font-extrabold text-brand-navy">
+              <RotateCcw size={17} />
+              Waiting for teacher revision
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-brand-taupe">
+              The teacher can revise and resubmit this same proposal. It will return to the review queue when resubmitted.
+            </p>
+            {proposal.review_notes && (
+              <div className="mt-3 whitespace-pre-wrap rounded-lg bg-white/70 p-3 text-sm text-brand-navy">
+                {proposal.review_notes}
+              </div>
+            )}
+          </div>
+        )}
+
+        {proposal.status === 'denied' && (
+          <div className="rounded-xl border border-brand-junior/35 bg-brand-junior/5 p-4">
+            <div className="flex items-center gap-2 text-sm font-extrabold text-[#9f3d39]">
+              <Ban size={17} />
+              Proposal denied
+            </div>
+            {proposal.review_notes && (
+              <div className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-brand-navy">
+                {proposal.review_notes}
+              </div>
+            )}
+          </div>
         )}
 
         {proposal.status === 'approved' && (
@@ -656,6 +802,7 @@ function StatusBadge({ status }) {
   const styles = {
     submitted: "bg-brand-gold/15 text-brand-navy",
     under_review: "bg-brand-sky/20 text-brand-navy",
+    revision_requested: "bg-brand-gold/20 text-brand-navy",
     approved: "bg-emerald-100 text-emerald-800",
     denied: "bg-brand-junior/15 text-brand-navy",
     withdrawn: "bg-brand-sand/20 text-brand-taupe",
@@ -671,6 +818,46 @@ function StatusBadge({ status }) {
       {titleCase(status || "unknown")}
     </span>
   );
+}
+
+function reviewActionLabel(action) {
+  const labels = {
+    submitted: "Submitted",
+    resubmitted: "Resubmitted",
+    under_review: "Marked under review",
+    revision_requested: "Revision requested",
+    approved: "Approved",
+    denied: "Denied",
+    withdrawn: "Withdrawn",
+  };
+  return labels[action] || titleCase(action);
+}
+
+function decisionButtonLabel(action) {
+  if (action === "approved") return "approval";
+  if (action === "revision_requested") return "revision request";
+  if (action === "denied") return "denial";
+  return "decision";
+}
+
+function confirmationTitle(action) {
+  if (action === "approved") return "Approve this proposal?";
+  if (action === "revision_requested") return "Return this proposal for revision?";
+  if (action === "denied") return "Deny this proposal?";
+  return "Confirm review decision";
+}
+
+function confirmationDescription(action) {
+  if (action === "approved") {
+    return "This will run the existing class-proposal approval workflow.";
+  }
+  if (action === "revision_requested") {
+    return "The proposal will stay open and the teacher will be able to edit and resubmit the same proposal. Your review note will be preserved in history.";
+  }
+  if (action === "denied") {
+    return "This closes the proposal as denied. The review note will be preserved in history.";
+  }
+  return "Confirm this action.";
 }
 
 function DetailGroup({ title, children }) {

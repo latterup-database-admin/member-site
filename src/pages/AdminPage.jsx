@@ -242,15 +242,13 @@ export default function AdminPage() {
     [classProposals],
   );
 
-  const contributionApprovalCount = useMemo(
-    () =>
-      contributionApplications.filter(
-        (application) =>
-          application.application_type !== "teaching" &&
-          ["submitted", "under_review"].includes(application.status),
-      ).length,
-    [contributionApplications],
-  );
+const contributionApprovalCount = useMemo(
+  () =>
+    contributionApplications.filter((application) =>
+      ["submitted", "under_review"].includes(application.status),
+    ).length,
+  [contributionApplications],
+);
 
   const registrationExceptionCount =
     registrationOverview?.exception_counts?.pending ?? 0;

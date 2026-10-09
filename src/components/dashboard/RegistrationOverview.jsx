@@ -6,17 +6,18 @@ import {
   LockKeyhole,
 } from 'lucide-react'
 import DashboardCard from './DashboardCard'
+import { Link } from 'react-router-dom'
+import { ArrowRight, HandHeart } from 'lucide-react'
 
-function ProgramRow({ name, data = {}, accent }) {
-  const eligible = Boolean(data?.eligible)
-  const label = data?.label ?? 'Not available'
+function ProgramRow({ name, data = {}, accent, contributionLabel }) {
+  const label = data?.allowanceLabel ?? 'Status unavailable'
   const detail = data?.detail ?? ''
 
-  const Icon = eligible
-    ? label.toLowerCase().includes('unlimited')
-      ? Infinity
-      : CheckCircle2
-    : LockKeyhole
+  const Icon = label === 'Unlimited classes'
+    ? Infinity
+    : label === '2-class limit'
+      ? CheckCircle2
+      : LockKeyhole
 
   return (
     <div className="flex gap-3 py-3 first:pt-0 last:pb-0">
@@ -34,6 +35,12 @@ function ProgramRow({ name, data = {}, accent }) {
             {label}
           </p>
         </div>
+
+        {contributionLabel && (
+          <p className="mt-2 text-sm font-semibold text-brand-navy">
+            Contribution: {contributionLabel}
+          </p>
+        )}
 
         {detail && (
           <p className="mt-0.5 text-sm leading-relaxed text-brand-taupe">
@@ -56,6 +63,26 @@ export default function RegistrationOverview({
 
   const junior = registration?.junior ?? {}
   const youth = registration?.youth ?? {}
+
+  // get_my_dashboard derives these values from get_household_registration_status.
+  const juniorAllowance = junior.unlimited === true
+    ? 'Unlimited classes'
+    : junior.classLimit === 2
+      ? '2-class limit'
+      : junior.classLimit === 0
+        ? 'Contribution Required'
+        : 'Status unavailable'
+  const youthAllowance = youth.contributionApproved === true
+    ? 'Unlimited classes'
+    : youth.contributionApproved === false
+      ? 'Contribution Required'
+      : 'Status unavailable'
+  const juniorContribution = juniorAllowance === 'Status unavailable'
+    ? 'Status unavailable'
+    : juniorAllowance === 'Contribution Required' ? 'Not met' : 'Met'
+  const youthContribution = youthAllowance === 'Status unavailable'
+    ? 'Status unavailable'
+    : youthAllowance === 'Contribution Required' ? 'Not met' : 'Met'
 
   return (
     <DashboardCard className="overflow-hidden">
@@ -123,13 +150,15 @@ export default function RegistrationOverview({
         <div className="divide-y divide-brand-sand/25">
           <ProgramRow
             name="Junior"
-            data={junior}
+            data={{ ...junior, allowanceLabel: juniorAllowance }}
+            contributionLabel={juniorContribution}
             accent="bg-brand-junior/15 text-brand-junior"
           />
 
           <ProgramRow
             name="Youth"
-            data={youth}
+            data={{ ...youth, allowanceLabel: youthAllowance }}
+            contributionLabel={youthContribution}
             accent="bg-brand-sky/25 text-brand-navy"
           />
         </div>
@@ -141,6 +170,14 @@ export default function RegistrationOverview({
           <CalendarDays size={17} />
           Go to registration
         </a>
+        <Link
+          to="/contributions"
+          className="focus-ring ml-0 mt-3 inline-flex items-center gap-2 text-sm font-extrabold text-brand-navy hover:text-brand-junior sm:ml-4"
+        >
+          <HandHeart size={17} />
+          View my contributions
+          <ArrowRight size={15} />
+        </Link>
       </div>
     </DashboardCard>
   )

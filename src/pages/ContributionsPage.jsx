@@ -10,6 +10,7 @@ import {
 
 import {
   loadContributionCatalog,
+  loadMyContributionApplications,
   submitContributionClaim,
 } from "../data/contributions";
 
@@ -171,6 +172,8 @@ function contributionKindClass(opportunity) {
 
 export default function ContributionsPage() {
   const [opportunities, setOpportunities] = useState([]);
+  const [myApplications, setMyApplications] = useState([]);
+  const [applicationsError, setApplicationsError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [search, setSearch] = useState("");
@@ -182,8 +185,17 @@ export default function ContributionsPage() {
       setLoading(true);
       setLoadError(null);
 
-      const rows = await loadContributionCatalog();
+      const [rows, applicationsResult] = await Promise.all([
+        loadContributionCatalog(),
+        loadMyContributionApplications().then((data) => ({ data })).catch((error) => ({ error })),
+      ]);
       setOpportunities(rows);
+      if (applicationsResult.error) {
+        setApplicationsError(applicationsResult.error.message || "Could not load your applications.");
+      } else {
+        setApplicationsError(null);
+        setMyApplications(applicationsResult.data);
+      }
 
       if (keepSelected && selected) {
         setSelected(rows.find((row) => row.id === selected.id) ?? null);
@@ -279,6 +291,12 @@ export default function ContributionsPage() {
           </div>
         </div>
       </header>
+
+      <MyContributions
+        applications={myApplications}
+        error={applicationsError}
+        loading={loading}
+      />
 
       <section className="rounded-3xl border border-brand-sand/40 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -718,5 +736,37 @@ function Detail({ label, value }) {
       <div className="text-xs font-bold uppercase tracking-wide text-brand-taupe">{label}</div>
       <div className="mt-1 text-sm font-semibold text-brand-navy">{value}</div>
     </div>
+  );
+}
+
+
+function MyContributions({ applications, error, loading }) {
+  return (
+    <section className="rounded-3xl border border-brand-sand/40 bg-white p-5 shadow-sm sm:p-6">
+      <h2 className="text-xl font-extrabold text-brand-navy">My Contributions</h2>
+      <p className="mt-1 text-sm text-brand-taupe">Track the status of your contribution claims.</p>
+      {error && <p className="mt-3 text-sm text-brand-junior" role="alert">{error}</p>}
+      {loading && applications.length === 0 ? (
+        <p className="mt-4 text-sm text-brand-taupe">Loading your applications…</p>
+      ) : applications.length === 0 ? (
+        <p className="mt-4 text-sm text-brand-taupe">You haven't submitted any contribution claims yet.</p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {applications.map((application) => (
+            <article key={application.id} className="rounded-2xl border border-brand-sand/40 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-brand-navy">{application.opportunityTitle}</h3>
+                  <p className="mt-1 text-xs text-brand-taupe">{application.schoolYearName}</p>
+                </div>
+                <span className="rounded-full bg-brand-sky/15 px-3 py-1 text-xs font-bold text-brand-navy">
+                  {formatStatus(application.status)}
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

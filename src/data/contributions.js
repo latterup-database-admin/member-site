@@ -131,3 +131,21 @@ export async function submitClassContribution({
 
   return data;
 }
+
+
+export async function loadMyContributionApplications() {
+  const { data, error } = await supabase.rpc("get_my_contribution_applications");
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    schoolYearName: row.school_year_name,
+    opportunityId: row.contribution_opportunity_id,
+    opportunityTitle: row.opportunity_title,
+    applicationType: row.application_type,
+    status: row.status,
+    responses: row.responses ?? {},
+    submittedAt: row.submitted_at,
+    reviewNotes: row.review_notes,
+    linkedClassProposals: row.linked_class_proposals ?? [],
+  }));
+}

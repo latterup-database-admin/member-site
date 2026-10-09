@@ -479,10 +479,11 @@ function ContributionDrawer({ application, canApprove, onClose, onChanged }) {
                   onChange={(event) => setReviewNotes(event.target.value)}
                   disabled={Boolean(actionLoading) || !canAct}
                   rows={3}
-                  placeholder="Optional internal notes"
+                  placeholder="Review notes (optional)"
                   className="mt-1.5 w-full rounded-xl border border-brand-sand/45 bg-white px-3 py-2 text-sm text-brand-navy outline-none focus:border-brand-sky focus:ring-2 focus:ring-brand-sky/20 disabled:bg-brand-sand/10"
                 />
               </label>
+
 
               {actionError && (
                 <div className="rounded-xl border border-brand-junior/35 bg-brand-junior/5 p-3 text-sm text-brand-navy">{actionError}</div>
@@ -523,9 +524,9 @@ function ContributionDrawer({ application, canApprove, onClose, onChanged }) {
                     Deny
                   </button>
                 </div>
-              ) : (
-                <p className="text-xs text-brand-taupe">This claim has already been finalized.</p>
-              )}
+              ) : !canAct ? (
+                <p className="text-xs text-brand-taupe">This claim is not currently awaiting admin review.</p>
+              ) : null}
             </div>
           ) : (
             <p className="text-xs leading-relaxed text-brand-taupe">You have view access only. Approve Contributions permission is required to review claims.</p>
