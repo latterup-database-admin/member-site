@@ -67,7 +67,9 @@ export async function createAdminSchoolYear(values) {
     p_source_school_year_id: values.source_id || null,
     p_sessions: values.sessions ?? [],
     p_copy_closures: Boolean(values.source_id && values.copy_closures),
-    p_closures: values.source_id && values.copy_closures ? values.closures : [],
+    p_closures: values.source_id && values.copy_closures ? values.closures ?? [] : [],
+    p_copy_meetings: Boolean(values.source_id && values.copy_meetings),
+    p_meetings: values.source_id && values.copy_meetings ? values.meetings ?? [] : [],
   });
   if (error) throw error;
   return data;

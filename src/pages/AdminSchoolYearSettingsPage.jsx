@@ -81,7 +81,7 @@ function outsideYear(item, draft) {
 
 const fieldClass = "w-full rounded-lg border border-brand-sand/60 bg-white px-3 py-2 text-sm text-brand-navy";
 
-function CreateSchoolYear({ years, periods, closures, onCreated }) {
+function CreateSchoolYear({ years, periods, closures, meetings, onCreated }) {
   const [sourceId, setSourceId] = useState("");
   const [mode, setMode] = useState("copy");
   const [draft, setDraft] = useState(null);
@@ -96,13 +96,14 @@ function CreateSchoolYear({ years, periods, closures, onCreated }) {
 
   function begin() {
     if (mode === "blank") {
-      setDraft({ source_id: null, name: "", starts_on: "", ends_on: "", copy_closures: false, sessions: [], closures: [] });
+      setDraft({ source_id: null, name: "", starts_on: "", ends_on: "", copy_closures: false, copy_meetings: false, sessions: [], closures: [], meetings: [] });
       setError(""); setNotice(""); return;
     }
     if (!source) return;
     const matches = periods.filter((p) => String(p.school_year_id) === sourceId);
     if (!matches.length) { setError("The selected source year has no program sessions."); return; }
     const matchClosures = closures.filter((c) => String(c.school_year_id) === sourceId);
+    const matchMeetings = meetings.filter((m) => String(m.school_year_id) === sourceId);
     const yearMatch = source.name.match(/^(\d{4})-(\d{4})$/);
     setDraft({
       source_id: sourceId,
@@ -110,6 +111,8 @@ function CreateSchoolYear({ years, periods, closures, onCreated }) {
       starts_on: shiftDays(source.starts_on, 364),
       ends_on: shiftDays(source.ends_on, 364),
       copy_closures: true,
+      copy_meetings: true,
+      meetings: matchMeetings.map((m) => ({ ...m, meeting_date: shiftDays(m.meeting_date, 364) })),
       sessions: matches.map(({ id, program, period, label, starts_on, ends_on, display_order, is_active }) => ({
         id, program, period, label, starts_on: shiftDays(starts_on, 364), ends_on: shiftDays(ends_on, 364), display_order, is_active
       })),
@@ -135,6 +138,9 @@ function CreateSchoolYear({ years, periods, closures, onCreated }) {
     if (draft.copy_closures && draft.closures.some((c) => !c.name.trim() || outsideYear(c, draft))) {
       setError(`Every copied break or holiday must fall within ${displayDate(draft.starts_on)} through ${displayDate(draft.ends_on)}.`); return;
     }
+    if (draft.copy_meetings && draft.meetings.some((m) => !m.meeting_date || m.meeting_date < draft.starts_on || m.meeting_date > draft.ends_on || !m.start_time || (m.end_time && m.end_time <= m.start_time))) {
+      setError("Every copied meeting must have a valid date within the new school year and a valid Eastern Time range."); return;
+    }
     setError(""); setConfirm(true);
   }
   async function create() {
@@ -143,7 +149,7 @@ function CreateSchoolYear({ years, periods, closures, onCreated }) {
     try {
       const result = await createAdminSchoolYear(draft);
       await onCreated(result.id);
-      setNotice(`Created ${result.name} with ${result.sessions_created} sessions and ${result.closures_created} breaks/holidays. The current school year was not changed.`);
+      setNotice(`Created ${result.name} with ${result.sessions_created} sessions and ${result.closures_created} breaks/holidays and ${result.meetings_created ?? 0} key meetings. The current school year was not changed.`);
       setDraft(null); setConfirm(false);
     } catch (cause) {
       setError(cause?.message || "Could not create school year."); setConfirm(false);
@@ -170,7 +176,7 @@ function CreateSchoolYear({ years, periods, closures, onCreated }) {
         </div>
       ) : (
         <div className="space-y-5 rounded-xl border border-brand-sand/50 bg-brand-sand/10 p-4">
-          <p className="text-sm text-brand-taupe">{draft.source_id ? `Copied from ${source?.name || years.find((y) => String(y.id) === draft.source_id)?.name}. Session dates shift 52 weeks; movable holidays are calculated, fixed holidays move one calendar year, and school breaks shift 52 weeks. Review every date.` : "Start with an empty school year. You can add program sessions, breaks, and holidays afterward."}</p>
+          <p className="text-sm text-brand-taupe">{draft.source_id ? `Copied from ${source?.name || years.find((y) => String(y.id) === draft.source_id)?.name}. Session dates shift 52 weeks; movable holidays are calculated, fixed holidays move one calendar year, and school breaks and key meetings shift 52 weeks. Review every date.` : "Start with an empty school year. You can add program sessions, breaks, and holidays afterward."}</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <label className="text-sm font-bold text-brand-navy">New year name<input className={fieldClass} value={draft.name} onChange={(e) => patch("name", e.target.value)} /></label>
             <label className="text-sm font-bold text-brand-navy">Start date<input type="date" className={fieldClass} value={draft.starts_on} onChange={(e) => patch("starts_on", e.target.value)} /></label>
@@ -188,11 +194,25 @@ function CreateSchoolYear({ years, periods, closures, onCreated }) {
             <label className="flex items-center gap-2 text-sm font-bold text-brand-navy"><input type="checkbox" checked={draft.copy_closures} onChange={(e) => patch("copy_closures", e.target.checked)} /> Copy breaks & holidays ({draft.closures.length})</label>
             {draft.copy_closures && <>
               <p className="text-xs text-brand-taupe">Suggested dates are estimates; review all events. To omit breaks and holidays, uncheck Copy breaks & holidays.</p>
-              {draft.closures.map((item, i) => <div key={i} className="grid items-end gap-2 rounded-lg border border-brand-sand/30 bg-white p-2 sm:grid-cols-4">
-                <label className="text-xs text-brand-taupe">Event<input className={fieldClass} value={item.name} onChange={(e) => patchItem("closures", i, "name", e.target.value)} /></label>
-                <label className="text-xs text-brand-taupe">Start<input type="date" className={fieldClass} value={item.starts_on} onChange={(e) => patchItem("closures", i, "starts_on", e.target.value)} /></label>
-                <label className="text-xs text-brand-taupe">End<input type="date" className={fieldClass} value={item.ends_on} onChange={(e) => patchItem("closures", i, "ends_on", e.target.value)} /></label>
-                <span className="text-xs text-brand-taupe">{item.date_hint}</span>
+              {draft.closures.map((item, i) => <div key={item.id || i} className="grid items-end gap-2 rounded-lg border border-brand-sand/30 bg-white p-2 sm:grid-cols-3">
+                <div className="flex flex-col gap-1 self-center">
+                  <span className="text-sm font-semibold text-brand-navy">{item.name}</span>
+                  {item.date_hint && <span className="text-xs text-brand-taupe">{item.date_hint}</span>}
+                </div>
+                <label className="text-xs text-brand-taupe">Start<input aria-label={`${item.name} start`} type="date" className={fieldClass} value={item.starts_on} onChange={(e) => patchItem("closures", i, "starts_on", e.target.value)} /></label>
+                <label className="text-xs text-brand-taupe">End<input aria-label={`${item.name} end`} type="date" className={fieldClass} value={item.ends_on} onChange={(e) => patchItem("closures", i, "ends_on", e.target.value)} /></label>
+              </div>)}
+            </>}
+          </div>}
+          {draft.source_id && <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-bold text-brand-navy"><input type="checkbox" checked={draft.copy_meetings} onChange={(e) => patch("copy_meetings", e.target.checked)} /> Copy key meetings ({draft.meetings.length})</label>
+            {draft.copy_meetings && <>
+              <p className="text-xs text-brand-taupe">Meeting dates are shifted 52 weeks. Review each date and time; all times are Eastern Time (ET).</p>
+              {draft.meetings.map((item, i) => <div key={item.id} className="grid items-end gap-2 rounded-lg border border-brand-sand/30 bg-white p-2 sm:grid-cols-4">
+                <span className="text-sm font-semibold text-brand-navy">{item.name}{!item.is_active ? " (Inactive)" : ""}</span>
+                <label className="text-xs text-brand-taupe">Date<input type="date" className={fieldClass} value={item.meeting_date} onChange={(e) => patchItem("meetings", i, "meeting_date", e.target.value)} /></label>
+                <label className="text-xs text-brand-taupe">Start (ET)<input type="time" className={fieldClass} value={item.start_time?.slice(0, 5) || ""} onChange={(e) => patchItem("meetings", i, "start_time", e.target.value)} /></label>
+                <label className="text-xs text-brand-taupe">End (ET, optional)<input type="time" className={fieldClass} value={item.end_time?.slice(0, 5) || ""} onChange={(e) => patchItem("meetings", i, "end_time", e.target.value || null)} /></label>
               </div>)}
             </>}
           </div>}
@@ -207,11 +227,12 @@ function CreateSchoolYear({ years, periods, closures, onCreated }) {
       <ConfirmDialog open={confirm} title="Confirm New School Year" confirmLabel="Create School Year" busy={busy} onCancel={() => { if (!busy) setConfirm(false); }} onConfirm={create} warning="The new school year will NOT become current. Existing class offerings and registration windows will not be changed.">
         {draft && <div className="space-y-2 text-sm">
           <p><strong>{draft.name}</strong>: {displayDate(draft.starts_on)} – {displayDate(draft.ends_on)}</p>
-          <p>{draft.sessions.length} program sessions; {draft.copy_closures ? draft.closures.length : 0} breaks and holidays.</p>
+          <p>{draft.sessions.length} program sessions; {draft.copy_closures ? draft.closures.length : 0} breaks and holidays; {draft.copy_meetings ? draft.meetings.length : 0} key meetings.</p>
           <p>Mode: {draft.source_id ? `Copy from ${years.find((y) => String(y.id) === draft.source_id)?.name}` : "Blank school year"}</p>
           <div className="max-h-48 overflow-y-auto rounded-lg border border-brand-sand/40 p-2">
             {draft.sessions.map((s) => <p key={`${s.program}-${s.period}`}>{s.label}: {displayDate(s.starts_on)} – {displayDate(s.ends_on)}</p>)}
             {draft.copy_closures && draft.closures.map((c, i) => <p key={i}>{c.name}: {displayDate(c.starts_on)} – {displayDate(c.ends_on)}</p>)}
+            {draft.copy_meetings && draft.meetings.map((m) => <p key={m.id}>{m.name}: {displayDate(m.meeting_date)}, {m.start_time?.slice(0, 5)}{m.end_time ? `–${m.end_time.slice(0, 5)}` : ""} ET</p>)}
           </div>
         </div>}
       </ConfirmDialog>
@@ -665,7 +686,7 @@ export default function AdminSchoolYearSettingsPage() {
               </div>
             </div>
             {openSections.years && <div className="mt-3 space-y-4 border-t border-brand-sand/40 pt-4">
-              {canManage && showCreateYear && <div className="rounded-xl border border-brand-sand/40 bg-brand-sand/10 p-4"><h3 className="font-extrabold text-brand-navy">Create New School Year</h3><CreateSchoolYear years={years} periods={periods} closures={closures} onCreated={refreshAfterCreate} /></div>}
+              {canManage && showCreateYear && <div className="rounded-xl border border-brand-sand/40 bg-brand-sand/10 p-4"><h3 className="font-extrabold text-brand-navy">Create New School Year</h3><CreateSchoolYear years={years} periods={periods} closures={closures} meetings={meetings} onCreated={refreshAfterCreate} /></div>}
               {years.length === 0 ? <p className="mt-3 text-sm text-brand-taupe">No school years found.</p> : (
               <div className="mt-3 space-y-3">
                 <label className="block text-sm font-bold text-brand-navy" htmlFor="school-year-select">View school year</label>
