@@ -89,7 +89,7 @@ export default function AdminClassProposalsPage() {
         </h1>
 
         <p className="mt-1 max-w-3xl text-sm leading-relaxed text-brand-taupe">
-          Review teaching class proposals. Approval confirms the teaching contribution; catalog submission remains a separate workflow.
+          Review class proposals independently of teaching contributions. Approval creates the class and its offerings and publishes them in the course catalog.
         </p>
       </header>
 
@@ -182,8 +182,7 @@ function ClassProposalsSection() {
           </div>
 
           <p className="mt-1 text-sm text-brand-taupe">
-            Review submitted teaching/class proposals before they
-            become live catalog records.
+            Review submitted class proposals. Approved classes are published to the catalog automatically.
           </p>
         </div>
 
@@ -737,7 +736,7 @@ function ProposalDetailDrawer({
               )}
 
               <p className="text-xs leading-relaxed text-brand-taupe">
-                Approval advances the existing approval workflow. Returning for revision keeps this proposal open so the teacher can edit and resubmit the same record. Denial closes the proposal.
+                Approval creates and publishes the class, including its offerings, teachers, and meeting schedules. Publication does not open registration. Returning for revision lets the teacher edit and resubmit the same proposal; denial closes it.
               </p>
 
               {!canApprove && (
@@ -787,7 +786,7 @@ function ProposalDetailDrawer({
               Proposal approved
             </div>
             <p className="mt-1 text-xs leading-relaxed text-emerald-800/80">
-              The linked teaching contribution is approved. Catalog submission remains a separate workflow.
+              This class has been approved and published in the course catalog. It also appears in the teacher’s My Classes. Registration opens separately according to the registration schedule.
             </p>
           </div>
         )}
@@ -841,7 +840,7 @@ function decisionButtonLabel(action) {
 }
 
 function confirmationTitle(action) {
-  if (action === "approved") return "Approve this proposal?";
+  if (action === "approved") return "Approve and publish this class?";
   if (action === "revision_requested") return "Return this proposal for revision?";
   if (action === "denied") return "Deny this proposal?";
   return "Confirm review decision";
@@ -849,7 +848,7 @@ function confirmationTitle(action) {
 
 function confirmationDescription(action) {
   if (action === "approved") {
-    return "This will run the existing class-proposal approval workflow.";
+    return "This approves the proposal once, creates the course and its scheduled offerings, and publishes them immediately in the class catalog. Registration does not open automatically. This action cannot be repeated.";
   }
   if (action === "revision_requested") {
     return "The proposal will stay open and the teacher will be able to edit and resubmit the same proposal. Your review note will be preserved in history.";

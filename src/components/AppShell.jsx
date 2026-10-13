@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   Bell,
   BookOpen,
+  ClipboardList,
   CalendarDays,
   CreditCard,
   HandHeart,
@@ -25,6 +26,7 @@ const navItems = [
   { to: '/classes', label: 'Classes', icon: BookOpen },
   { to: '/registration', label: 'Registration', icon: CalendarDays },
   { to: '/contributions', label: 'Contributions', icon: HandHeart },
+  { to: '/class-proposals', label: 'Class Proposals', icon: ClipboardList },
   { to: '/payments', label: 'Payments', icon: CreditCard },
   { to: '/directory', label: 'Directory', icon: Users },
   { to: '/account', label: 'Account', icon: Settings },

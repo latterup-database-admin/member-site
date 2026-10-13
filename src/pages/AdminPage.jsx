@@ -87,6 +87,7 @@ const ADMIN_SECTIONS = [
       "Dates, deadlines, registration windows, sessions, and system settings.",
     permission: "admin.settings.view",
     icon: Settings,
+    to: "/admin/school-year-settings",
   },
   {
     key: "audit",

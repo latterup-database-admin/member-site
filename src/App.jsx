@@ -4,12 +4,14 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AccessPendingPage from "./pages/AccessPendingPage";
 import ClassesPage from "./pages/ClassesPage";
 import DashboardPage from "./pages/DashboardPage";
+import ImportantDatesPage from "./pages/ImportantDatesPage";
 import LoginPage from "./pages/LoginPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import AnnualProfileReviewPage from "./pages/AnnualProfileReviewPage";
 import DirectoryPage from "./pages/DirectoryPage";
 import ContributionsPage from "./pages/ContributionsPage";
+import ClassProposalsPage from "./pages/ClassProposalsPage";
 import AdminRoute from "./components/admin/AdminRoute";
 import AdminPage from "./pages/AdminPage";
 import AdminClassProposalsPage from "./pages/AdminClassProposalsPage";
@@ -17,6 +19,7 @@ import AdminContributionApplicationsPage from "./pages/AdminContributionApplicat
 import AdminContributionOpportunitiesPage from "./pages/AdminContributionOpportunitiesPage";
 import AdminContributionSettingsPage from "./pages/AdminContributionSettingsPage";
 import AdminRegistrationPage from "./pages/AdminRegistrationPage";
+import AdminSchoolYearSettingsPage from "./pages/AdminSchoolYearSettingsPage";
 import MyClassesPage from "./pages/MyClassesPage";
 import TeacherClassManagementPage from "./pages/TeacherClassManagementPage";
 
@@ -36,6 +39,7 @@ export default function App() {
 
       <Route element={<ProtectedShell />}>
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/important-dates" element={<ImportantDatesPage />} />
         <Route
           path="/admin"
           element={
@@ -77,6 +81,14 @@ export default function App() {
           }
         />
         <Route
+          path="/admin/school-year-settings"
+          element={
+            <AdminRoute>
+              <AdminSchoolYearSettingsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
           path="/admin/registration"
           element={
             <AdminRoute>
@@ -107,6 +119,7 @@ export default function App() {
         />
 
         <Route path="/contributions" element={<ContributionsPage />} />
+        <Route path="/class-proposals" element={<ClassProposalsPage />} />
         <Route
           path="/payments"
           element={
