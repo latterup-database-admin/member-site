@@ -23,11 +23,13 @@
   text-rendering: optimizeLegibility;
 }
 
-* { box-sizing: border-box; }
-html { min-width: 320px; background: #f8f8f6; }
-body { margin: 0; min-width: 320px; min-height: 100vh; }
-button, input, textarea, select { font: inherit; }
-a { color: inherit; }
+@layer base {
+  * { box-sizing: border-box; }
+  html { min-width: 320px; background: #f8f8f6; }
+  body { margin: 0; min-width: 320px; min-height: 100vh; }
+  button, input, textarea, select { font: inherit; }
+  a { color: inherit; }
+}
 
 ::selection {
   background: color-mix(in srgb, var(--color-brand-sky) 50%, white);
@@ -43,4 +45,27 @@ a { color: inherit; }
 .focus-ring:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--color-brand-sky) 70%, white);
   outline-offset: 2px;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl
+      bg-brand-navy px-4 py-2.5 text-sm font-extrabold text-white
+      transition hover:bg-[#00153a]
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl
+      border-2 border-brand-navy bg-white px-3.5 py-2 text-sm
+      font-extrabold text-brand-navy
+      transition hover:bg-brand-navy hover:text-white
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--color-brand-sky) 70%, white);
+    outline-offset: 2px;
+  }
 }

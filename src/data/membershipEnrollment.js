@@ -1,18 +1,11 @@
-
 import { supabase } from "../lib/supabase";
 
-export async function loadMembershipEnrollment({
-  householdId,
-  schoolYearId,
-}) {
+export async function loadMembershipEnrollment({ householdId, schoolYearId }) {
   if (!householdId || !schoolYearId) {
     throw new Error("Household and school year are required.");
   }
 
-  const [
-    membershipResult,
-    availabilityResult,
-  ] = await Promise.all([
+  const [membershipResult, availabilityResult] = await Promise.all([
     supabase
       .from("household_membership_years")
       .select("*")
@@ -36,21 +29,21 @@ export async function loadMembershipEnrollment({
 
   const membership = membershipResult.data;
 
-let progress = null;
-let annualReviewComplete = false;
+  let progress = null;
+  let annualReviewComplete = false;
 
-if (membership) {
-  const { data: reviewData, error: reviewError } = await supabase.rpc(
-    "check_my_household_annual_review",
-    {
-      p_school_year_id: schoolYearId,
-    },
-  );
+  if (membership) {
+    const { data: reviewData, error: reviewError } = await supabase.rpc(
+      "check_my_household_annual_review",
+      {
+        p_school_year_id: schoolYearId,
+      },
+    );
 
-  if (reviewError) throw reviewError;
+    if (reviewError) throw reviewError;
 
-  annualReviewComplete = reviewData?.household_review_complete === true;
-}
+    annualReviewComplete = reviewData?.household_review_complete === true;
+  }
 
   if (membership) {
     const { data, error } = await supabase.rpc(
@@ -58,12 +51,12 @@ if (membership) {
       {
         p_household_id: householdId,
         p_school_year_id: schoolYearId,
-      }
+      },
     );
 
     if (error) throw error;
 
-    progress = Array.isArray(data) ? data[0] ?? null : data;
+    progress = Array.isArray(data) ? (data[0] ?? null) : data;
   }
 
   return {
@@ -75,16 +68,12 @@ if (membership) {
     progress: progress
       ? {
           annualReviewComplete,
-          materialsAcknowledged:
-            progress.meeting_acknowledged === true,
-          duesSatisfied:
-            progress.dues_satisfied === true,
-          contributionDeclared:
-            progress.contribution_declared === true,
-          contributionApproved:
-            progress.contribution_approved === true,
-          enrollmentComplete:
-            progress.reenrollment_complete === true,
+          agreementsAccepted: progress.agreements_accepted === true,
+          materialsAcknowledged: progress.meeting_acknowledged === true,
+          duesSatisfied: progress.dues_satisfied === true,
+          contributionDeclared: progress.contribution_declared === true,
+          contributionApproved: progress.contribution_approved === true,
+          enrollmentComplete: progress.reenrollment_complete === true,
         }
       : null,
   };
@@ -93,7 +82,8 @@ if (membership) {
 export async function loadMembershipEnrollmentWindow() {
   const { data, error } = await supabase
     .from("membership_enrollment_windows")
-    .select(`
+    .select(
+      `
       school_year_id,
       opens_at,
       closes_at,
@@ -101,7 +91,8 @@ export async function loadMembershipEnrollmentWindow() {
         id,
         name
       )
-    `)
+    `,
+    )
     .order("opens_at", { ascending: false })
     .limit(1)
     .maybeSingle();

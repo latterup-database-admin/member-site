@@ -169,7 +169,7 @@ export default function MembershipEnrollmentPage() {
               type="button"
               onClick={handleBeginReenrollment}
               disabled={starting}
-              className="rounded-lg bg-brand-navy px-5 py-2.5 font-semibold text-white disabled:opacity-50"
+              className="btn-primary"
             >
               {starting ? "Starting…" : "Begin Reenrollment"}
             </button>
@@ -211,7 +211,7 @@ export default function MembershipEnrollmentPage() {
               {enrollment?.enrollmentOpen ? (
                 <Link
                   to={`/annual-profile-review?schoolYear=${encodeURIComponent(schoolYear.name)}`}
-                  className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy/90"
+                  className="btn-primary"
                 >
                   Review Family Information
                 </Link>
@@ -222,6 +222,34 @@ export default function MembershipEnrollmentPage() {
               )}
             </div>
 
+                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-sand/30 py-3">
+              <div>
+                <p className="text-sm font-semibold text-brand-navy">
+                  Agreements &amp; Acknowledgments
+                </p>
+                <span
+                  className={
+                    progress.agreementsAccepted
+                      ? "text-sm font-bold text-emerald-700"
+                      : "text-sm font-semibold text-brand-taupe"
+                  }
+                >
+                  {progress.agreementsAccepted ? "Complete" : "Pending"}
+                </span>
+                <p className="mt-1 text-xs text-brand-taupe">
+                  Review and sign the annual member agreements for{" "}
+                  {schoolYear?.name}.
+                </p>
+              </div>
+
+              <Link
+                to={`/annual-agreements?schoolYearId=${encodeURIComponent(schoolYear.id)}`}
+                className="btn-primary"
+              >
+                Review Agreements
+              </Link>
+            </div>
+           
             {[
               ["Enrollment materials", progress.materialsAcknowledged],
               ["Membership dues", progress.duesSatisfied],

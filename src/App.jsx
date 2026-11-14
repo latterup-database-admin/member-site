@@ -23,6 +23,8 @@ import AdminSchoolYearSettingsPage from "./pages/AdminSchoolYearSettingsPage";
 import MyClassesPage from "./pages/MyClassesPage";
 import TeacherClassManagementPage from "./pages/TeacherClassManagementPage";
 import MembershipEnrollmentPage from "./pages/MembershipEnrollmentPage";
+import AnnualAgreementsPage from "./pages/AnnualAgreementsPage";
+import AdminMembershipEnrollmentPage from "./pages/AdminMemberEnrollmentPage";
 
 function ProtectedShell() {
   return (
@@ -101,11 +103,20 @@ export default function App() {
             </AdminRoute>
           }
         />
+        <Route
+          path="/admin/membership-enrollment"
+          element={
+            <AdminRoute>
+              <AdminMembershipEnrollmentPage />
+            </AdminRoute>
+          }
+        />
 
         <Route
           path="/annual-profile-review"
           element={<AnnualProfileReviewPage />}
         />
+        <Route path="/annual-agreements" element={<AnnualAgreementsPage />} />
 
         <Route path="/classes" element={<ClassesPage />} />
         <Route

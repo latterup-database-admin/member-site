@@ -50,3 +50,30 @@ export async function saveAdminMembershipEnrollmentWindow({
 
   return data;
 }
+
+
+export async function loadAdminSchoolYearOptions() {
+  const { data, error } = await supabase
+    .from("school_years")
+    .select("id, name, starts_on, is_current")
+    .order("starts_on", { ascending: false });
+
+  if (error) throw error;
+
+  return data ?? [];
+}
+
+export async function loadAdminMembershipEnrollmentStatus(schoolYearId) {
+  if (!schoolYearId) {
+    throw new Error("A school year must be selected.");
+  }
+
+  const { data, error } = await supabase.rpc(
+    "get_admin_membership_enrollment_status",
+    { p_school_year_id: schoolYearId },
+  );
+
+  if (error) throw error;
+
+  return data;
+}

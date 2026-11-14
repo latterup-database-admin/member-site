@@ -37,6 +37,7 @@ const ADMIN_SECTIONS = [
       "People, households, relationships, annual reviews, and member administration.",
     permission: "admin.members.view",
     icon: Users,
+    to: "/admin/membership-enrollment",
   },
   {
     key: "contribution-opportunities",
