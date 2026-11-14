@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import LoadingScreen from "../components/LoadingScreen";
+import { useSearchParams } from "react-router-dom";
 
 const SCHOOL_YEAR_NAME = "2026-2027";
 
@@ -116,7 +117,7 @@ const inputClass =
 const readOnlyClass =
   "w-full rounded-lg border border-brand-sand/30 bg-stone-50 px-3 py-2.5 text-sm text-brand-taupe";
 
-function StudentEditor({ child, onSaved }) {
+function StudentEditor({ child, onSaved, schoolYearId, enrollmentOpen }) {
   const [form, setForm] = useState({
     preferred_name: child.preferred_name ?? "",
     birth_date: child.birth_date ?? "",
@@ -169,13 +170,40 @@ function StudentEditor({ child, onSaved }) {
       return;
     }
 
+    const needsConfirmation = !child.annual_review?.review_complete;
+
+    if (needsConfirmation && enrollmentOpen) {
+      const { error: confirmError } = await supabase.rpc(
+        "complete_annual_profile_review",
+        {
+          p_person_id: child.person_id,
+          p_school_year_id: schoolYearId,
+          p_confirmed_member_type: null,
+          p_notes: null,
+        },
+      );
+
+      if (confirmError) {
+        setMessage({
+          type: "error",
+          text: `${child.first_name}'s changes were saved, but annual confirmation failed: ${confirmError.message}`,
+        });
+
+        await onSaved();
+        setSaving(false);
+        return;
+      }
+    }
+
     setMessage({
       type: "success",
-      text: `${child.first_name}'s profile was saved.`,
+      text:
+        needsConfirmation && enrollmentOpen
+          ? `${child.first_name}'s information has been confirmed.`
+          : `${child.first_name}'s changes have been saved.`,
     });
 
     await onSaved();
-
     setSaving(false);
   }
 
@@ -369,7 +397,11 @@ function StudentEditor({ child, onSaved }) {
           disabled={saving}
           className="focus-ring rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? "Saving…" : `Save ${child.first_name}'s profile`}
+          {saving
+            ? "Saving…"
+            : !child.annual_review?.review_complete && enrollmentOpen
+              ? `Confirm ${child.first_name}'s Information`
+              : "Save Changes"}
         </button>
 
         {message ? (
@@ -390,11 +422,15 @@ function StudentEditor({ child, onSaved }) {
 
 export default function AnnualProfileReviewPage() {
   const { isDevPreview } = useAuth();
+  const [searchParams] = useSearchParams();
+  const requestedSchoolYear = searchParams.get("schoolYear");
+  const selectedSchoolYear = requestedSchoolYear || SCHOOL_YEAR_NAME;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [schoolYearId, setSchoolYearId] = useState(null);
+  const [enrollmentOpen, setEnrollmentOpen] = useState(false);
   const [reviewData, setReviewData] = useState(null);
   const [validation, setValidation] = useState(null);
 
@@ -439,7 +475,7 @@ export default function AnnualProfileReviewPage() {
     const { data: years, error: yearError } = await supabase
       .from("school_years")
       .select("id, name")
-      .eq("name", SCHOOL_YEAR_NAME)
+      .eq("name", selectedSchoolYear)
       .limit(1);
 
     if (yearError) {
@@ -483,6 +519,22 @@ export default function AnnualProfileReviewPage() {
       return;
     }
 
+    const { data: isOpen, error: enrollmentError } = await supabase.rpc(
+      "is_membership_enrollment_open",
+      {
+        p_household_id: profileData.household.id,
+        p_school_year_id: schoolYear.id,
+      },
+    );
+
+    if (enrollmentError) {
+      setError(enrollmentError.message);
+      setLoading(false);
+      return;
+    }
+
+    setEnrollmentOpen(isOpen === true);
+
     setReviewData(profileData);
     setValidation(validationData);
 
@@ -507,7 +559,7 @@ export default function AnnualProfileReviewPage() {
     });
 
     setLoading(false);
-  }, [isDevPreview]);
+  }, [isDevPreview, selectedSchoolYear]);
 
   useEffect(() => {
     loadReview();
@@ -580,13 +632,41 @@ export default function AnnualProfileReviewPage() {
       return;
     }
 
+    const needsConfirmation =
+      !reviewData?.adult?.annual_review?.review_complete;
+
+    if (needsConfirmation && enrollmentOpen) {
+      const { error: confirmError } = await supabase.rpc(
+        "complete_annual_profile_review",
+        {
+          p_person_id: reviewData.adult.person_id,
+          p_school_year_id: schoolYearId,
+          p_confirmed_member_type: "adult",
+          p_notes: null,
+        },
+      );
+
+      if (confirmError) {
+        setAdultMessage({
+          type: "error",
+          text: `Your changes were saved, but annual confirmation failed: ${confirmError.message}`,
+        });
+
+        await loadReview();
+        setSavingAdult(false);
+        return;
+      }
+    }
+
     setAdultMessage({
       type: "success",
-      text: "Your profile was saved.",
+      text:
+        needsConfirmation && enrollmentOpen
+          ? "Your information has been confirmed."
+          : "Your changes have been saved.",
     });
 
     await loadReview();
-
     setSavingAdult(false);
   }
 
@@ -645,10 +725,7 @@ export default function AnnualProfileReviewPage() {
       return;
     }
 
-    setSubmitMessage({
-      type: "success",
-      text: "Your annual profile review is complete.",
-    });
+    setSubmitMessage(null);
 
     setConfirmationChecked(false);
 
@@ -691,9 +768,10 @@ export default function AnnualProfileReviewPage() {
         </h1>
 
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-brand-taupe">
-          Review your family information before registration. Names and Latter
-          UP email addresses are managed by the organization and cannot be
-          changed here.
+          Review and update your family's information at any time. During annual
+          membership enrollment, you'll also confirm each family member's
+          information. Names and Latter UP email addresses are managed by the
+          organization and cannot be changed here.
         </p>
       </header>
 
@@ -816,8 +894,22 @@ export default function AnnualProfileReviewPage() {
         title="Your Profile"
         description="Review your personal contact information."
       >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-brand-navy">
+              {adult.first_name} {adult.last_name}
+            </h3>
+
+            <p className="mt-1 text-sm text-brand-taupe">
+              {adult.workspace_email || "No Workspace email"}
+            </p>
+          </div>
+
+          <StatusBadge status={adult.annual_review?.action_status} />
+        </div>
+
         <form onSubmit={saveAdult}>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
             <Field label="First name">
               <div className={readOnlyClass}>{adult.first_name}</div>
             </Field>
@@ -937,7 +1029,11 @@ export default function AnnualProfileReviewPage() {
               disabled={savingAdult}
               className="focus-ring rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {savingAdult ? "Saving…" : "Save your profile"}
+              {savingAdult
+                ? "Saving…"
+                : !adult.annual_review?.review_complete && enrollmentOpen
+                  ? "Confirm My Information"
+                  : "Save Changes"}
             </button>
 
             {adultMessage ? (
@@ -967,7 +1063,12 @@ export default function AnnualProfileReviewPage() {
           <div className="divide-y divide-brand-sand/40">
             {children.map((child) => (
               <div key={child.person_id} className="py-7 first:pt-0 last:pb-0">
-                <StudentEditor child={child} onSaved={loadReview} />
+                <StudentEditor
+                  child={child}
+                  onSaved={loadReview}
+                  schoolYearId={schoolYearId}
+                  enrollmentOpen={enrollmentOpen}
+                />
               </div>
             ))}
           </div>
@@ -976,12 +1077,32 @@ export default function AnnualProfileReviewPage() {
 
       <SectionCard
         title="Review & Submit"
-        description="Confirm that you have reviewed the information for your family."
+        description={
+          enrollmentOpen
+            ? "Once each family member's information has been confirmed, submit your family's completed Annual Profile Review."
+            : "View your family's annual review status for this school year. You can continue updating profile information even when enrollment is closed."
+        }
       >
-        {validation?.blockers?.length > 0 ? (
+        {!enrollmentOpen && !validation?.household_review_complete ? (
+          <div className="rounded-lg border border-brand-sand/40 bg-brand-cream/30 p-4">
+            <p className="font-bold text-brand-navy">
+              Annual review not completed
+            </p>
+
+            <p className="mt-1 text-sm text-brand-taupe">
+              The annual review for {reviewData.school_year?.name} was not
+              completed, and enrollment is currently closed. You can still
+              review and update your family's information at any time.
+            </p>
+          </div>
+        ) : validation?.blockers?.length > 0 ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
             <p className="font-bold text-amber-900">
-              Some information still needs attention.
+              {validation.blockers.every(
+                (blocker) => blocker.code === "individual_review_incomplete",
+              )
+                ? "Individual confirmations still needed"
+                : "Some information still needs attention"}
             </p>
 
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-900">
@@ -1009,7 +1130,8 @@ export default function AnnualProfileReviewPage() {
               <p className="font-bold text-emerald-900">Ready to submit</p>
 
               <p className="mt-1 text-sm text-emerald-800">
-                No required information is missing.
+                All individual confirmations are complete. Your household's
+                Annual Profile Review is ready to submit.
               </p>
             </div>
 
@@ -1025,12 +1147,13 @@ export default function AnnualProfileReviewPage() {
 
               <span>
                 <span className="block text-sm font-bold text-brand-navy">
-                  I have reviewed this information
+                  I am ready to finalize our household's annual review
                 </span>
 
                 <span className="mt-1 block text-sm leading-relaxed text-brand-taupe">
-                  I confirm that the household and profile information shown
-                  above is accurate to the best of my knowledge.
+                  I acknowledge that each family member's information has been
+                  reviewed and confirmed, and I am ready to submit our
+                  household's Annual Profile Review.
                 </span>
               </span>
             </label>
@@ -1061,16 +1184,6 @@ export default function AnnualProfileReviewPage() {
           </div>
         ) : null}
 
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <StatusBadge
-            status={reviewData.adult?.annual_review?.action_status}
-          />
-
-          <span className="text-sm text-brand-taupe">
-            {validation?.managed_children ?? 0} managed student
-            {(validation?.managed_children ?? 0) === 1 ? "" : "s"}
-          </span>
-        </div>
       </SectionCard>
     </div>
   );

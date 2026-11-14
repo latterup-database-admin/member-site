@@ -22,6 +22,7 @@ import AdminRegistrationPage from "./pages/AdminRegistrationPage";
 import AdminSchoolYearSettingsPage from "./pages/AdminSchoolYearSettingsPage";
 import MyClassesPage from "./pages/MyClassesPage";
 import TeacherClassManagementPage from "./pages/TeacherClassManagementPage";
+import MembershipEnrollmentPage from "./pages/MembershipEnrollmentPage";
 
 function ProtectedShell() {
   return (
@@ -39,6 +40,10 @@ export default function App() {
 
       <Route element={<ProtectedShell />}>
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route
+          path="/membership-enrollment"
+          element={<MembershipEnrollmentPage />}
+        />
         <Route path="/important-dates" element={<ImportantDatesPage />} />
         <Route
           path="/admin"
