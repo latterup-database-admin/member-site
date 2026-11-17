@@ -222,7 +222,7 @@ export default function MembershipEnrollmentPage() {
               )}
             </div>
 
-                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-sand/30 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-sand/30 py-3">
               <div>
                 <p className="text-sm font-semibold text-brand-navy">
                   Agreements &amp; Acknowledgments
@@ -249,7 +249,46 @@ export default function MembershipEnrollmentPage() {
                 Review Agreements
               </Link>
             </div>
-           
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-sand/30 py-3">
+              <div>
+                <p className="text-sm font-semibold text-brand-navy">
+                  Annual Feedback
+                </p>
+                {progress.feedbackRequired ? (
+                  <span
+                    className={
+                      progress.feedbackComplete
+                        ? "text-sm font-bold text-emerald-700"
+                        : "text-sm font-semibold text-brand-taupe"
+                    }
+                  >
+                    {progress.feedbackComplete ? "Complete" : "Pending"}
+                  </span>
+                ) : (
+                  <span className="text-sm font-semibold text-brand-taupe">
+                    Not required for new families
+                  </span>
+                )}
+                <p className="mt-1 text-xs text-brand-taupe">
+                  Share your thoughts on the past year's classes and programs.
+                </p>
+              </div>
+
+              {progress.feedbackRequired && (
+                <Link
+                  to={`/annual-feedback?schoolYearId=${encodeURIComponent(schoolYear.id)}`}
+                  className={
+                    progress.feedbackComplete ? "btn-secondary" : "btn-primary"
+                  }
+                >
+                  {progress.feedbackComplete
+                    ? "View Feedback"
+                    : "Give Feedback"}
+                </Link>
+              )}
+            </div>
+
             {[
               ["Enrollment materials", progress.materialsAcknowledged],
               ["Membership dues", progress.duesSatisfied],

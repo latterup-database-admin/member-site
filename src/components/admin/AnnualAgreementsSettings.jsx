@@ -259,7 +259,7 @@ export default function AnnualAgreementsSettings({
                   setSaveError("");
                   setCreatingAgreement(true);
                 }}
-                className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                className="btn-primary"
               >
                 <Plus size={16} />
                 New Agreement

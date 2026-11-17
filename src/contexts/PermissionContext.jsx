@@ -16,10 +16,10 @@ export function PermissionProvider({ children }) {
   const { portalContext, isDevPreview } = useAuth();
 
   const [permissions, setPermissions] = useState([]);
-  const [loadingPermissions, setLoadingPermissions] =
-    useState(!isDevPreview);
-  const [permissionError, setPermissionError] =
-    useState(null);
+  const [loadingPermissions, setLoadingPermissions] = useState(!isDevPreview);
+  const [permissionError, setPermissionError] = useState(null);
+  const personId = portalContext?.person?.id ?? null;
+  const [loadedForPersonId, setLoadedForPersonId] = useState(null);
 
   const loadPermissions = useCallback(async () => {
     if (isDevPreview) {
@@ -33,6 +33,7 @@ export function PermissionProvider({ children }) {
       setPermissions([]);
       setPermissionError(null);
       setLoadingPermissions(false);
+      setLoadedForPersonId(null);
       return;
     }
 
@@ -44,19 +45,15 @@ export function PermissionProvider({ children }) {
 
       setPermissions(result);
     } catch (error) {
-      console.error(
-        "Permissions failed to load:",
-        error,
-      );
+      console.error("Permissions failed to load:", error);
 
       setPermissions([]);
-      setPermissionError(
-        error.message || "Permissions could not be loaded.",
-      );
+      setPermissionError(error.message || "Permissions could not be loaded.");
     } finally {
       setLoadingPermissions(false);
+      setLoadedForPersonId(personId);
     }
-  }, [portalContext?.person, isDevPreview]);
+  }, [portalContext?.person, isDevPreview, personId]);
 
   useEffect(() => {
     loadPermissions();
@@ -73,35 +70,31 @@ export function PermissionProvider({ children }) {
   );
 
   const hasAnyPermission = useCallback(
-    (...keys) =>
-      keys.flat().some((key) =>
-        permissionKeys.has(key),
-      ),
+    (...keys) => keys.flat().some((key) => permissionKeys.has(key)),
     [permissionKeys],
   );
 
   const hasAllPermissions = useCallback(
-    (...keys) =>
-      keys.flat().every((key) =>
-        permissionKeys.has(key),
-      ),
+    (...keys) => keys.flat().every((key) => permissionKeys.has(key)),
     [permissionKeys],
   );
 
   const isAdmin = useMemo(
-    () =>
-      [...permissionKeys].some((key) =>
-        key.startsWith("admin."),
-      ),
+    () => [...permissionKeys].some((key) => key.startsWith("admin.")),
     [permissionKeys],
   );
+
+  // Still loading until permissions belong to the person signed in now.
+  const effectiveLoading =
+    loadingPermissions ||
+    (!isDevPreview && personId !== null && loadedForPersonId !== personId);
 
   const value = useMemo(
     () => ({
       permissions,
       permissionKeys,
 
-      loadingPermissions,
+      loadingPermissions: effectiveLoading,
       permissionError,
 
       isAdmin,
@@ -115,7 +108,7 @@ export function PermissionProvider({ children }) {
     [
       permissions,
       permissionKeys,
-      loadingPermissions,
+      effectiveLoading,
       permissionError,
       isAdmin,
       hasPermission,
@@ -136,9 +129,7 @@ export function usePermissions() {
   const context = useContext(PermissionContext);
 
   if (!context) {
-    throw new Error(
-      "usePermissions must be used inside PermissionProvider.",
-    );
+    throw new Error("usePermissions must be used inside PermissionProvider.");
   }
 
   return context;

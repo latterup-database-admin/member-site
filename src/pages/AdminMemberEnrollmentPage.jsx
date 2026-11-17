@@ -31,9 +31,17 @@ function formatDate(value) {
 
 function Done({ value, label }) {
   return value ? (
-    <Check size={16} className="text-emerald-700" aria-label={`${label}: complete`} />
+    <Check
+      size={16}
+      className="text-emerald-700"
+      aria-label={`${label}: complete`}
+    />
   ) : (
-    <Minus size={16} className="text-brand-sand" aria-label={`${label}: not complete`} />
+    <Minus
+      size={16}
+      className="text-brand-sand"
+      aria-label={`${label}: not complete`}
+    />
   );
 }
 
@@ -108,7 +116,9 @@ export default function AdminMembershipEnrollmentPage() {
       total: households.length,
       current: current.length,
       agreementsDone: current.filter(
-        (h) => h.agreements_total > 0 && h.agreements_accepted === h.agreements_total,
+        (h) =>
+          h.agreements_total > 0 &&
+          h.agreements_accepted === h.agreements_total,
       ).length,
       needsAgreements: households.filter(needsAgreements).length,
       enrollmentComplete: current.filter((h) => h.reenrollment_complete).length,
@@ -137,7 +147,10 @@ export default function AdminMembershipEnrollmentPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/admin" className="text-sm font-semibold text-brand-navy underline">
+        <Link
+          to="/admin"
+          className="text-sm font-semibold text-brand-navy underline"
+        >
           ← Back to Admin
         </Link>
         <p className="mt-4 text-xs font-extrabold uppercase tracking-widest text-brand-junior">
@@ -146,6 +159,12 @@ export default function AdminMembershipEnrollmentPage() {
         <h1 className="brand-title mt-2 text-3xl text-brand-navy">
           Membership Enrollment Status
         </h1>
+        <Link
+          to="/admin/annual-feedback"
+          className="mt-2 inline-block text-sm font-semibold text-brand-navy underline"
+        >
+          Annual Feedback →
+        </Link>
       </div>
 
       <div className="flex flex-wrap items-end gap-4">
@@ -172,16 +191,24 @@ export default function AdminMembershipEnrollmentPage() {
         </div>
       )}
 
-      {loading && !error && <p className="text-brand-taupe">Loading enrollment status…</p>}
+      {loading && !error && (
+        <p className="text-brand-taupe">Loading enrollment status…</p>
+      )}
 
       {!loading && !error && data && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               ["Current households", `${counts.current} of ${counts.total}`],
-              ["All agreements accepted", `${counts.agreementsDone} of ${counts.current}`],
+              [
+                "All agreements accepted",
+                `${counts.agreementsDone} of ${counts.current}`,
+              ],
               ["Need agreements", counts.needsAgreements],
-              ["Enrollment complete", `${counts.enrollmentComplete} of ${counts.current}`],
+              [
+                "Enrollment complete",
+                `${counts.enrollmentComplete} of ${counts.current}`,
+              ],
             ].map(([label, value]) => (
               <div
                 key={label}
@@ -190,7 +217,9 @@ export default function AdminMembershipEnrollmentPage() {
                 <p className="text-xs font-bold uppercase tracking-wide text-brand-taupe">
                   {label}
                 </p>
-                <p className="mt-1 text-2xl font-extrabold text-brand-navy">{value}</p>
+                <p className="mt-1 text-2xl font-extrabold text-brand-navy">
+                  {value}
+                </p>
               </div>
             ))}
           </div>
@@ -227,13 +256,17 @@ export default function AdminMembershipEnrollmentPage() {
                   <th className="px-3 py-3 text-center">Dues</th>
                   <th className="px-3 py-3 text-center">Contrib. declared</th>
                   <th className="px-3 py-3 text-center">Contrib. approved</th>
+                  <th className="px-3 py-3 text-center">Feedback</th>
                   <th className="px-3 py-3 text-center">Complete</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-sand/25 text-brand-navy">
                 {visible.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-6 text-center text-brand-taupe">
+                    <td
+                      colSpan={11}
+                      className="px-4 py-6 text-center text-brand-taupe"
+                    >
                       No households match this filter.
                     </td>
                   </tr>
@@ -242,10 +275,16 @@ export default function AdminMembershipEnrollmentPage() {
                     <tr key={h.membership_year_id}>
                       <td className="px-4 py-3">
                         <p className="font-semibold">{h.family_name || "—"}</p>
-                        <p className="text-xs text-brand-taupe">{h.legacy_family_id}</p>
+                        <p className="text-xs text-brand-taupe">
+                          {h.legacy_family_id}
+                        </p>
                       </td>
-                      <td className="px-4 py-3 text-brand-taupe">{h.managers || "—"}</td>
-                      <td className="px-4 py-3 capitalize">{h.membership_status}</td>
+                      <td className="px-4 py-3 text-brand-taupe">
+                        {h.managers || "—"}
+                      </td>
+                      <td className="px-4 py-3 capitalize">
+                        {h.membership_status}
+                      </td>
                       <td className="px-4 py-3">
                         <p
                           className={
@@ -267,12 +306,65 @@ export default function AdminMembershipEnrollmentPage() {
                           </p>
                         )}
                       </td>
-                      <td className="px-3 py-3"><div className="flex justify-center"><Done value={h.profile_review_complete} label="Profile review" /></div></td>
-                      <td className="px-3 py-3"><div className="flex justify-center"><Done value={h.materials_acknowledged} label="Materials" /></div></td>
-                      <td className="px-3 py-3"><div className="flex justify-center"><Done value={h.dues_satisfied} label="Dues" /></div></td>
-                      <td className="px-3 py-3"><div className="flex justify-center"><Done value={h.contribution_declared} label="Contribution declared" /></div></td>
-                      <td className="px-3 py-3"><div className="flex justify-center"><Done value={h.contribution_approved} label="Contribution approved" /></div></td>
-                      <td className="px-3 py-3"><div className="flex justify-center"><Done value={h.reenrollment_complete} label="Enrollment complete" /></div></td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          <Done
+                            value={h.profile_review_complete}
+                            label="Profile review"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          <Done
+                            value={h.materials_acknowledged}
+                            label="Materials"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          <Done value={h.dues_satisfied} label="Dues" />
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          <Done
+                            value={h.contribution_declared}
+                            label="Contribution declared"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          <Done
+                            value={h.contribution_approved}
+                            label="Contribution approved"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          {h.feedback_submitted || h.feedback_required ? (
+                            <Done
+                              value={h.feedback_submitted}
+                              label="Feedback"
+                            />
+                          ) : (
+                            <span className="text-xs text-brand-taupe">
+                              n/a
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          <Done
+                            value={h.reenrollment_complete}
+                            label="Enrollment complete"
+                          />
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}

@@ -26,6 +26,7 @@ import {
 } from "../data/adminMembershipEnrollment";
 import AnnualAgreementsSettings from "../components/admin/AnnualAgreementsSettings";
 import { easternWallTimeToIso } from "../data/adminRegistration";
+import AnnualFeedbackSettings from "../components/admin/AnnualFeebackSettings";
 
 async function loadKeyMeetings() {
   const { data, error } = await supabase.rpc(
@@ -1943,12 +1944,17 @@ export default function AdminSchoolYearSettingsPage() {
             )}
           </section>
           <MembershipEnrollmentSettings
-            // key={selectedYearId}
+            key={`enrollment-${selectedYearId}`}
             schoolYearId={selectedYearId}
             canManage={canManage}
           />
           <AnnualAgreementsSettings
-            key={selectedYearId}
+            key={`agreements-${selectedYearId}`}
+            schoolYearId={selectedYearId}
+            canManage={canManage}
+          />
+          <AnnualFeedbackSettings
+            key={`feedback-${selectedYearId}`}
             schoolYearId={selectedYearId}
             canManage={canManage}
           />

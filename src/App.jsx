@@ -25,6 +25,9 @@ import TeacherClassManagementPage from "./pages/TeacherClassManagementPage";
 import MembershipEnrollmentPage from "./pages/MembershipEnrollmentPage";
 import AnnualAgreementsPage from "./pages/AnnualAgreementsPage";
 import AdminMembershipEnrollmentPage from "./pages/AdminMemberEnrollmentPage";
+import AnnualFeedbackPage from "./pages/AnnualFeedbackPage";
+import AdminAnnualFeedbackPage from "./pages/AdminAnnualFeedbackPage";
+import AdminFeedbackSummaryPrintPage from "./pages/AdminFeedbackSummaryPrintPage";
 
 function ProtectedShell() {
   return (
@@ -113,10 +116,20 @@ export default function App() {
         />
 
         <Route
+          path="/admin/annual-feedback"
+          element={
+            <AdminRoute>
+              <AdminAnnualFeedbackPage />
+            </AdminRoute>
+          }
+        />
+
+        <Route
           path="/annual-profile-review"
           element={<AnnualProfileReviewPage />}
         />
         <Route path="/annual-agreements" element={<AnnualAgreementsPage />} />
+        <Route path="/annual-feedback" element={<AnnualFeedbackPage />} />
 
         <Route path="/classes" element={<ClassesPage />} />
         <Route
@@ -156,6 +169,17 @@ export default function App() {
           }
         />
       </Route>
+
+      <Route
+        path="/admin/annual-feedback/summary"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <AdminFeedbackSummaryPrintPage />
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

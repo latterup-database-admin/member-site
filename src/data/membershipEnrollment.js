@@ -69,6 +69,8 @@ export async function loadMembershipEnrollment({ householdId, schoolYearId }) {
       ? {
           annualReviewComplete,
           agreementsAccepted: progress.agreements_accepted === true,
+          feedbackRequired: progress.feedback_required === true,
+          feedbackComplete: progress.feedback_complete === true,
           materialsAcknowledged: progress.meeting_acknowledged === true,
           duesSatisfied: progress.dues_satisfied === true,
           contributionDeclared: progress.contribution_declared === true,
