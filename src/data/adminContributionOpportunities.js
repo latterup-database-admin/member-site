@@ -18,7 +18,9 @@ export async function saveAdminContributionOpportunity(values) {
       p_description: values.description || null,
       p_contribution_type: values.contribution_type || null,
       p_slots:
-        values.slots === "" || values.slots === null || values.slots === undefined
+        values.slots === "" ||
+        values.slots === null ||
+        values.slots === undefined
           ? null
           : Number(values.slots),
       p_status: values.status,
@@ -32,6 +34,7 @@ export async function saveAdminContributionOpportunity(values) {
       p_public_info_url: values.public_info_url || null,
       p_internal_info_url: values.internal_info_url || null,
       p_other_resources_url: values.other_resources_url || null,
+      p_school_year_id: values.school_year_id || null,
     },
   );
 
@@ -47,7 +50,9 @@ export async function createAdminContributionOpportunity(values) {
       p_description: values.description || null,
       p_contribution_type: values.contribution_type || null,
       p_slots:
-        values.slots === "" || values.slots === null || values.slots === undefined
+        values.slots === "" ||
+        values.slots === null ||
+        values.slots === undefined
           ? null
           : Number(values.slots),
       p_status: values.status || "draft",
@@ -75,4 +80,13 @@ export async function loadAdminContributionOpportunityCoverage() {
 
   if (error) throw error;
   return data ?? [];
+}
+
+export async function copyContributionOpportunitiesToSchoolYear(schoolYearId) {
+  const { data, error } = await supabase.rpc(
+    "copy_contribution_opportunities_to_school_year",
+    { p_target_school_year_id: schoolYearId },
+  );
+  if (error) throw error;
+  return data ?? 0;
 }

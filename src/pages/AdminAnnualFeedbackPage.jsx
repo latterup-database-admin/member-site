@@ -98,11 +98,8 @@ export default function AdminAnnualFeedbackPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          to="/admin"
-          className="text-sm font-semibold text-brand-navy underline"
-        >
-          ← Back to Admin
+        <Link to="/admin/membership-enrollment" className="text-sm font-semibold text-brand-navy underline">
+          ← Back to Membership Enrollment Status
         </Link>
         <p className="mt-4 text-xs font-extrabold uppercase tracking-widest text-brand-junior">
           Members &amp; Families
@@ -110,12 +107,6 @@ export default function AdminAnnualFeedbackPage() {
         <h1 className="brand-title mt-2 text-3xl text-brand-navy">
           Annual Feedback
         </h1>
-        <Link
-          to="/admin/membership-enrollment"
-          className="mt-2 inline-block text-sm font-semibold text-brand-navy underline"
-        >
-          Membership Enrollment Status →
-        </Link>
       </div>
 
       <label className="block text-sm font-semibold text-brand-navy">

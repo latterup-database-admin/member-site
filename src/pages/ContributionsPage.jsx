@@ -52,8 +52,12 @@ function periodLabel(period) {
 function coverageByProgram(opportunity) {
   const coverage = opportunity.coverage ?? [];
   return {
-    youth: coverage.filter((item) => item.program === "youth").map((item) => item.period),
-    junior: coverage.filter((item) => item.program === "junior").map((item) => item.period),
+    youth: coverage
+      .filter((item) => item.program === "youth")
+      .map((item) => item.period),
+    junior: coverage
+      .filter((item) => item.program === "junior")
+      .map((item) => item.period),
   };
 }
 
@@ -63,7 +67,11 @@ function coverageDisplayLabel(opportunity) {
 
   if (youth.length) {
     const full = youth.includes("fall") && youth.includes("spring");
-    parts.push(full ? "Youth · Full Year" : `Youth · ${youth.map(periodLabel).join(" + ")}`);
+    parts.push(
+      full
+        ? "Youth · Full Year"
+        : `Youth · ${youth.map(periodLabel).join(" + ")}`,
+    );
   }
 
   if (junior.length) {
@@ -74,7 +82,11 @@ function coverageDisplayLabel(opportunity) {
       "spring_session_2",
     ];
     const full = required.every((period) => junior.includes(period));
-    parts.push(full ? "Junior · Full Year" : `Junior · ${junior.map(periodLabel).join(" + ")}`);
+    parts.push(
+      full
+        ? "Junior · Full Year"
+        : `Junior · ${junior.map(periodLabel).join(" + ")}`,
+    );
   }
 
   let label = parts.join(" | ") || "Coverage not configured";
@@ -179,6 +191,7 @@ export default function ContributionsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
+  const [yearId, setYearId] = useState("");
 
   async function refreshCatalog({ keepSelected = false } = {}) {
     try {
@@ -187,11 +200,16 @@ export default function ContributionsPage() {
 
       const [rows, applicationsResult] = await Promise.all([
         loadContributionCatalog(),
-        loadMyContributionApplications().then((data) => ({ data })).catch((error) => ({ error })),
+        loadMyContributionApplications()
+          .then((data) => ({ data }))
+          .catch((error) => ({ error })),
       ]);
       setOpportunities(rows);
       if (applicationsResult.error) {
-        setApplicationsError(applicationsResult.error.message || "Could not load your applications.");
+        setApplicationsError(
+          applicationsResult.error.message ||
+            "Could not load your applications.",
+        );
       } else {
         setApplicationsError(null);
         setMyApplications(applicationsResult.data);
@@ -202,7 +220,9 @@ export default function ContributionsPage() {
       }
     } catch (error) {
       console.error("Contribution catalog failed to load:", error);
-      setLoadError(error.message || "Contribution opportunities could not be loaded.");
+      setLoadError(
+        error.message || "Contribution opportunities could not be loaded.",
+      );
     } finally {
       setLoading(false);
     }
@@ -231,15 +251,36 @@ export default function ContributionsPage() {
     };
   }, [selected]);
 
+  const yearTabs = useMemo(() => {
+    const years = new Map();
+    opportunities.forEach((o) => years.set(o.schoolYearId, o.schoolYearName));
+    return [...years]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [opportunities]);
+
+  // Default to the latest year (next year during reenrollment).
+  const activeYearId = yearTabs.some((y) => y.id === yearId)
+    ? yearId
+    : yearTabs[yearTabs.length - 1]?.id;
+
   const filteredOpportunities = useMemo(() => {
     const needle = search.trim().toLowerCase();
 
     return opportunities.filter((opportunity) => {
-      if (filter === "junior" && !opportunity.appliesToPrograms.includes("junior")) {
+      if (activeYearId && opportunity.schoolYearId !== activeYearId)
+        return false;
+      if (
+        filter === "junior" &&
+        !opportunity.appliesToPrograms.includes("junior")
+      ) {
         return false;
       }
 
-      if (filter === "youth" && !opportunity.appliesToPrograms.includes("youth")) {
+      if (
+        filter === "youth" &&
+        !opportunity.appliesToPrograms.includes("youth")
+      ) {
         return false;
       }
 
@@ -273,7 +314,7 @@ export default function ContributionsPage() {
 
       return haystack.includes(needle);
     });
-  }, [opportunities, search, filter]);
+  }, [opportunities, search, filter, activeYearId]);
 
   return (
     <div className="space-y-6">
@@ -284,7 +325,9 @@ export default function ContributionsPage() {
           </div>
 
           <div>
-            <h1 className="brand-title text-3xl text-brand-navy">Contributions</h1>
+            <h1 className="brand-title text-3xl text-brand-navy">
+              Contributions
+            </h1>
             <p className="mt-1 text-sm text-brand-taupe">
               Browse available contribution opportunities for your family.
             </p>
@@ -297,6 +340,29 @@ export default function ContributionsPage() {
         error={applicationsError}
         loading={loading}
       />
+
+      {yearTabs.length > 1 && (
+        <div
+          className="flex flex-wrap gap-2"
+          role="tablist"
+          aria-label="School year"
+        >
+          {yearTabs.map((y, index) => (
+            <button
+              key={y.id}
+              type="button"
+              role="tab"
+              aria-selected={activeYearId === y.id}
+              onClick={() => setYearId(y.id)}
+              className={
+                activeYearId === y.id ? "btn-primary" : "btn-secondary"
+              }
+            >
+              {index === 0 ? "This year" : "Next year"} · {y.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <section className="rounded-3xl border border-brand-sand/40 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -345,8 +411,12 @@ export default function ContributionsPage() {
         </div>
       ) : filteredOpportunities.length === 0 ? (
         <div className="rounded-3xl border border-brand-sand/40 bg-white p-8 text-center shadow-sm">
-          <div className="font-bold text-brand-navy">No contributions match those filters.</div>
-          <p className="mt-1 text-sm text-brand-taupe">Try a different search or filter.</p>
+          <div className="font-bold text-brand-navy">
+            No contributions match those filters.
+          </div>
+          <p className="mt-1 text-sm text-brand-taupe">
+            Try a different search or filter.
+          </p>
         </div>
       ) : (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -487,7 +557,9 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
     event.preventDefault();
 
     if (choiceMode === "choose_program" && !selectedProgram) {
-      setSubmitError("Please choose whether this contribution will count toward Junior or Youth.");
+      setSubmitError(
+        "Please choose whether this contribution will count toward Junior or Youth.",
+      );
       return;
     }
 
@@ -524,7 +596,9 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
       await onClaimed();
     } catch (error) {
       console.error("Contribution claim failed:", error);
-      setSubmitError(error.message || "Your contribution claim could not be submitted.");
+      setSubmitError(
+        error.message || "Your contribution claim could not be submitted.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -572,7 +646,9 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
           <div className="space-y-6">
             {opportunity.description && (
               <section>
-                <h3 className="text-sm font-extrabold text-brand-navy">About this contribution</h3>
+                <h3 className="text-sm font-extrabold text-brand-navy">
+                  About this contribution
+                </h3>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-brand-taupe">
                   {opportunity.description}
                 </p>
@@ -580,11 +656,26 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
             )}
 
             <section className="grid gap-4 sm:grid-cols-2">
-              <Detail label="Counts toward" value={coverageDisplayLabel(opportunity)} />
-              <Detail label="Cycle" value={opportunity.cycle || "Not specified"} />
-              <Detail label="Age group" value={opportunity.ageGroup || "Not specified"} />
-              <Detail label="Committee" value={opportunity.committee || "Not specified"} />
-              <Detail label="Oversight" value={opportunity.oversightGroup || "Not specified"} />
+              <Detail
+                label="Counts toward"
+                value={coverageDisplayLabel(opportunity)}
+              />
+              <Detail
+                label="Cycle"
+                value={opportunity.cycle || "Not specified"}
+              />
+              <Detail
+                label="Age group"
+                value={opportunity.ageGroup || "Not specified"}
+              />
+              <Detail
+                label="Committee"
+                value={opportunity.committee || "Not specified"}
+              />
+              <Detail
+                label="Oversight"
+                value={opportunity.oversightGroup || "Not specified"}
+              />
               <Detail
                 label="Availability"
                 value={
@@ -597,7 +688,9 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
 
             {linkItems.length > 0 && (
               <section>
-                <h3 className="text-sm font-extrabold text-brand-navy">Resources</h3>
+                <h3 className="text-sm font-extrabold text-brand-navy">
+                  Resources
+                </h3>
                 <div className="mt-2 flex flex-col gap-2">
                   {linkItems.map(([label, url]) => (
                     <a
@@ -616,7 +709,9 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
             )}
 
             <section className="border-t border-brand-sand/30 pt-5">
-              <h3 className="text-lg font-extrabold text-brand-navy">Claim this contribution</h3>
+              <h3 className="text-lg font-extrabold text-brand-navy">
+                Claim this contribution
+              </h3>
 
               {successMessage ? (
                 <div className="mt-3 rounded-2xl border border-brand-sky/40 bg-brand-sky/10 px-4 py-3 text-sm font-semibold text-brand-navy">
@@ -624,7 +719,12 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
                 </div>
               ) : hasClaim ? (
                 <div className="mt-3 rounded-2xl border border-brand-sky/40 bg-brand-sky/10 px-4 py-3 text-sm text-brand-navy">
-                  You already have an active claim for this opportunity. Current status: <strong>{formatStatus(opportunity.myApplicationStatus)}</strong>.
+                  You already have an active claim for this opportunity. Current
+                  status:{" "}
+                  <strong>
+                    {formatStatus(opportunity.myApplicationStatus)}
+                  </strong>
+                  .
                 </div>
               ) : opportunity.availabilityStatus !== "open" ? (
                 <div className="mt-3 rounded-2xl border border-brand-sand/40 bg-brand-sand/10 px-4 py-3 text-sm text-brand-taupe">
@@ -640,19 +740,29 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
 
                   {choiceMode === "all" && (
                     <div className="rounded-xl border border-brand-sky/35 bg-brand-sky/10 px-4 py-3 text-sm text-brand-taupe">
-                      This contribution counts toward <strong className="text-brand-navy">{coverageDisplayLabel(opportunity)}</strong>. No additional choice is needed.
+                      This contribution counts toward{" "}
+                      <strong className="text-brand-navy">
+                        {coverageDisplayLabel(opportunity)}
+                      </strong>
+                      . No additional choice is needed.
                     </div>
                   )}
 
                   {choiceMode === "choose_program" && (
                     <div>
-                      <label htmlFor="claim-program" className="text-sm font-bold text-brand-navy">
-                        Which program would you like this contribution to count toward?
+                      <label
+                        htmlFor="claim-program"
+                        className="text-sm font-bold text-brand-navy"
+                      >
+                        Which program would you like this contribution to count
+                        toward?
                       </label>
                       <select
                         id="claim-program"
                         value={selectedProgram}
-                        onChange={(event) => setSelectedProgram(event.target.value)}
+                        onChange={(event) =>
+                          setSelectedProgram(event.target.value)
+                        }
                         disabled={submitting}
                         className="mt-2 w-full rounded-xl border border-brand-sand/60 bg-white px-3 py-2.5 text-sm text-brand-navy outline-none transition focus:border-brand-sky focus:ring-2 focus:ring-brand-sky/20"
                       >
@@ -668,13 +778,19 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
 
                   {choiceMode === "choose_period" && (
                     <div>
-                      <label htmlFor="claim-period" className="text-sm font-bold text-brand-navy">
-                        Which period/session would you like this contribution to count toward?
+                      <label
+                        htmlFor="claim-period"
+                        className="text-sm font-bold text-brand-navy"
+                      >
+                        Which period/session would you like this contribution to
+                        count toward?
                       </label>
                       <select
                         id="claim-period"
                         value={selectedCoverageKey}
-                        onChange={(event) => setSelectedCoverageKey(event.target.value)}
+                        onChange={(event) =>
+                          setSelectedCoverageKey(event.target.value)
+                        }
                         disabled={submitting}
                         className="mt-2 w-full rounded-xl border border-brand-sand/60 bg-white px-3 py-2.5 text-sm text-brand-navy outline-none transition focus:border-brand-sky focus:ring-2 focus:ring-brand-sky/20"
                       >
@@ -689,8 +805,14 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
                   )}
 
                   <div>
-                    <label htmlFor="claim-notes" className="text-sm font-bold text-brand-navy">
-                      Notes <span className="font-normal text-brand-taupe">(optional)</span>
+                    <label
+                      htmlFor="claim-notes"
+                      className="text-sm font-bold text-brand-navy"
+                    >
+                      Notes{" "}
+                      <span className="font-normal text-brand-taupe">
+                        (optional)
+                      </span>
                     </label>
                     <textarea
                       id="claim-notes"
@@ -709,7 +831,9 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
 
                   {opportunity.isTeaching && (
                     <div className="rounded-xl border border-brand-gold/30 bg-brand-gold/10 px-4 py-3 text-sm text-brand-taupe">
-                      This is the initial teaching contribution claim. Full class information will be requested after the claim is approved.
+                      This is the initial teaching contribution claim. Full
+                      class information will be requested after the claim is
+                      approved.
                     </div>
                   )}
 
@@ -733,31 +857,51 @@ function ContributionDrawer({ opportunity, onClose, onClaimed }) {
 function Detail({ label, value }) {
   return (
     <div>
-      <div className="text-xs font-bold uppercase tracking-wide text-brand-taupe">{label}</div>
+      <div className="text-xs font-bold uppercase tracking-wide text-brand-taupe">
+        {label}
+      </div>
       <div className="mt-1 text-sm font-semibold text-brand-navy">{value}</div>
     </div>
   );
 }
 
-
 function MyContributions({ applications, error, loading }) {
   return (
     <section className="rounded-3xl border border-brand-sand/40 bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-xl font-extrabold text-brand-navy">My Contributions</h2>
-      <p className="mt-1 text-sm text-brand-taupe">Track the status of your contribution claims.</p>
-      {error && <p className="mt-3 text-sm text-brand-junior" role="alert">{error}</p>}
+      <h2 className="text-xl font-extrabold text-brand-navy">
+        My Contributions
+      </h2>
+      <p className="mt-1 text-sm text-brand-taupe">
+        Track the status of your contribution claims.
+      </p>
+      {error && (
+        <p className="mt-3 text-sm text-brand-junior" role="alert">
+          {error}
+        </p>
+      )}
       {loading && applications.length === 0 ? (
-        <p className="mt-4 text-sm text-brand-taupe">Loading your applications…</p>
+        <p className="mt-4 text-sm text-brand-taupe">
+          Loading your applications…
+        </p>
       ) : applications.length === 0 ? (
-        <p className="mt-4 text-sm text-brand-taupe">You haven't submitted any contribution claims yet.</p>
+        <p className="mt-4 text-sm text-brand-taupe">
+          You haven't submitted any contribution claims yet.
+        </p>
       ) : (
         <div className="mt-4 space-y-3">
           {applications.map((application) => (
-            <article key={application.id} className="rounded-2xl border border-brand-sand/40 p-4">
+            <article
+              key={application.id}
+              className="rounded-2xl border border-brand-sand/40 p-4"
+            >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <h3 className="font-bold text-brand-navy">{application.opportunityTitle}</h3>
-                  <p className="mt-1 text-xs text-brand-taupe">{application.schoolYearName}</p>
+                  <h3 className="font-bold text-brand-navy">
+                    {application.opportunityTitle}
+                  </h3>
+                  <p className="mt-1 text-xs text-brand-taupe">
+                    {application.schoolYearName}
+                  </p>
                 </div>
                 <span className="rounded-full bg-brand-sky/15 px-3 py-1 text-xs font-bold text-brand-navy">
                   {formatStatus(application.status)}

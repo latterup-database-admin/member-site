@@ -21,11 +21,13 @@ import {
   loadAdminContributionOpportunities,
   loadAdminContributionOpportunityCoverage,
   saveAdminContributionOpportunity,
+  copyContributionOpportunitiesToSchoolYear,
 } from "../data/adminContributionOpportunities";
 import {
   loadAdminContributionOptions,
   loadAdminContributionOpportunityAssignees,
 } from "../data/adminContributionSettings";
+import { loadAdminSchoolYearOptions } from "../data/adminMembershipEnrollment";
 
 const STATUS_FILTERS = ["all", "open", "filled", "draft", "closed", "archived"];
 const STATUS_OPTIONS = ["draft", "open", "filled", "closed", "archived"];
@@ -105,19 +107,31 @@ function OpportunityWorkspace({ canManage }) {
   const [assignees, setAssignees] = useState([]);
   const [assigneesLoading, setAssigneesLoading] = useState(false);
   const [assigneesError, setAssigneesError] = useState("");
+  const [years, setYears] = useState([]);
+  const [yearId, setYearId] = useState("");
+  const [copying, setCopying] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
 
   async function refresh() {
     setLoading(true);
     setError("");
     try {
-      const [opportunities, coverage, options] = await Promise.all([
+      const [opportunities, coverage, options, yearList] = await Promise.all([
         loadAdminContributionOpportunities(),
         loadAdminContributionOpportunityCoverage(),
         loadAdminContributionOptions(),
+        loadAdminSchoolYearOptions(),
       ]);
       setRows(opportunities);
       setCoverageRows(coverage);
       setOptionRows(options);
+      setYears(yearList);
+      setYearId(
+        (previous) =>
+          previous ||
+          (yearList.find((y) => y.is_current) ?? yearList[0])?.id ||
+          "",
+      );
     } catch (err) {
       console.error("Failed to load contribution opportunities", err);
       setError(
@@ -149,7 +163,9 @@ function OpportunityWorkspace({ canManage }) {
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return rows.filter((row) => {
-      if (statusFilter !== "all" && row.status !== statusFilter) return false;
+      if (yearId && row.school_year_id !== yearId) return false;
+      if (statusFilter !== "all" && row.availability_status !== statusFilter)
+        return false;
       if (!needle) return true;
       return [
         row.title,
@@ -163,7 +179,30 @@ function OpportunityWorkspace({ canManage }) {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(needle));
     });
-  }, [rows, query, statusFilter]);
+  }, [rows, query, statusFilter, yearId]);
+
+  const yearRowCount = rows.filter(
+    (row) => row.school_year_id === yearId,
+  ).length;
+
+  async function handleCopy() {
+    setCopying(true);
+    setCopyMessage("");
+    setError("");
+    try {
+      const copied = await copyContributionOpportunitiesToSchoolYear(yearId);
+      setCopyMessage(
+        copied > 0
+          ? `Copied ${copied} opportunities from the previous school year.`
+          : "The previous school year has no opportunities to copy.",
+      );
+      await refresh();
+    } catch (err) {
+      setError(err?.message || "Opportunities could not be copied.");
+    } finally {
+      setCopying(false);
+    }
+  }
 
   const lookupOptions = useMemo(() => {
     const categories = {
@@ -318,7 +357,10 @@ function OpportunityWorkspace({ canManage }) {
     setSavedMessage("");
     try {
       if (!selectedId) {
-        await createAdminContributionOpportunity(form);
+        await createAdminContributionOpportunity({
+          ...form,
+          school_year_id: yearId,
+        });
         await refresh();
         setDrawerOpen(false);
         return;
@@ -415,6 +457,26 @@ function OpportunityWorkspace({ canManage }) {
             />
           </label>
 
+          <label className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-brand-taupe">
+            School year
+            <select
+              value={yearId}
+              onChange={(event) => {
+                setYearId(event.target.value);
+                setCopyMessage("");
+              }}
+              className="focus-ring rounded-xl border border-brand-sand/45 bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-brand-navy shadow-sm"
+            >
+              {years.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.name}
+                  {y.is_current ? " (current)" : ""}
+                  {y.is_enrollment_year && !y.is_current ? " (enrollment)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <button
             type="button"
             onClick={refresh}
@@ -446,6 +508,31 @@ function OpportunityWorkspace({ canManage }) {
         {error && (
           <div className="rounded-2xl border border-brand-junior/35 bg-brand-junior/5 p-4 text-sm text-brand-navy">
             {error}
+          </div>
+        )}
+
+        {copyMessage && (
+          <p
+            role="status"
+            className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800"
+          >
+            {copyMessage}
+          </p>
+        )}
+
+        {!loading && canManage && yearRowCount === 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-sand/45 bg-white p-4 shadow-sm">
+            <p className="text-sm text-brand-navy">
+              This school year has no contribution opportunities yet.
+            </p>
+            <button
+              type="button"
+              onClick={handleCopy}
+              disabled={copying}
+              className="btn-secondary"
+            >
+              {copying ? "Copying…" : "Copy from previous year"}
+            </button>
           </div>
         )}
 
@@ -484,7 +571,7 @@ function OpportunityWorkspace({ canManage }) {
                       <ContributionKindBadge
                         contributionType={row.contribution_type}
                       />
-                      <StatusBadge status={row.status} />
+                      <StatusBadge status={row.availability_status} />
                     </div>
 
                     <div className="mt-2.5 line-clamp-2 text-base font-extrabold leading-snug text-brand-navy">
@@ -1133,7 +1220,7 @@ function Metric({ label, value }) {
 function StatusBadge({ status }) {
   const classes = {
     open: "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200",
-    filled: "bg-brand-junior/10 text-[#9f3d39] ring-1 ring-brand-junior/25",
+    // filled: "bg-brand-junior/10 text-[#9f3d39] ring-1 ring-brand-junior/25",
     draft: "bg-brand-sand/20 text-brand-taupe ring-1 ring-brand-sand/40",
     closed: "bg-brand-navy/10 text-brand-navy ring-1 ring-brand-navy/15",
     archived: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",

@@ -28,6 +28,8 @@ import AdminMembershipEnrollmentPage from "./pages/AdminMemberEnrollmentPage";
 import AnnualFeedbackPage from "./pages/AnnualFeedbackPage";
 import AdminAnnualFeedbackPage from "./pages/AdminAnnualFeedbackPage";
 import AdminFeedbackSummaryPrintPage from "./pages/AdminFeedbackSummaryPrintPage";
+import AdminAnnualMeetingPage from "./pages/AdminAnnualMeetingPage";
+import AdminHouseholdsPage from "./pages/AdminHouseholdsPage";
 
 function ProtectedShell() {
   return (
@@ -130,6 +132,22 @@ export default function App() {
         />
         <Route path="/annual-agreements" element={<AnnualAgreementsPage />} />
         <Route path="/annual-feedback" element={<AnnualFeedbackPage />} />
+        <Route
+          path="/admin/annual-meeting"
+          element={
+            <AdminRoute>
+              <AdminAnnualMeetingPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/households"
+          element={
+            <AdminRoute>
+              <AdminHouseholdsPage />
+            </AdminRoute>
+          }
+        />
 
         <Route path="/classes" element={<ClassesPage />} />
         <Route

@@ -55,7 +55,7 @@ export async function saveAdminMembershipEnrollmentWindow({
 export async function loadAdminSchoolYearOptions() {
   const { data, error } = await supabase
     .from("school_years")
-    .select("id, name, starts_on, is_current")
+    .select("id, name, starts_on, is_current, is_enrollment_year")
     .order("starts_on", { ascending: false });
 
   if (error) throw error;
@@ -75,5 +75,52 @@ export async function loadAdminMembershipEnrollmentStatus(schoolYearId) {
 
   if (error) throw error;
 
+  return data;
+}
+
+export async function loadAnnualMeetingOptions() {
+  const { data, error } = await supabase.rpc("get_admin_annual_meeting_options");
+  if (error) throw error;
+  return data;
+}
+
+export async function importAnnualMeetingAttendance({
+  meetingId,
+  schoolYearId,
+  rows,
+  minMinutes,
+}) {
+  const { data, error } = await supabase.rpc("import_annual_meeting_attendance", {
+    p_key_meeting_id: meetingId,
+    p_school_year_id: schoolYearId,
+    p_rows: rows,
+    p_min_minutes: minMinutes,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function recordAnnualMeeting({ householdId, schoolYearId, method, notes }) {
+  const { data, error } = await supabase.rpc("admin_record_annual_meeting", {
+    p_household_id: householdId,
+    p_school_year_id: schoolYearId,
+    p_method: method,
+    p_notes: notes || null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function loadAdminHouseholds() {
+  const { data, error } = await supabase.rpc("get_admin_households");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function loadAdminHouseholdDetail(householdId) {
+  const { data, error } = await supabase.rpc("get_admin_household_detail", {
+    p_household_id: householdId,
+  });
+  if (error) throw error;
   return data;
 }

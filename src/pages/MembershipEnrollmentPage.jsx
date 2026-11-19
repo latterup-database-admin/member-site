@@ -289,11 +289,48 @@ export default function MembershipEnrollmentPage() {
               )}
             </div>
 
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-sand/30 py-3">
+              <div>
+                <p className="text-sm font-semibold text-brand-navy">
+                  Contribution
+                </p>
+                <span
+                  className={
+                    progress.contributionApproved
+                      ? "text-sm font-bold text-emerald-700"
+                      : "text-sm font-semibold text-brand-taupe"
+                  }
+                >
+                  {progress.contributionApproved
+                    ? "Approved"
+                    : progress.contributionDeclared
+                      ? "Submitted, awaiting approval"
+                      : "Pending"}
+                </span>
+                <p className="mt-1 text-xs text-brand-taupe">
+                  Choose how your family will contribute for {schoolYear?.name}.
+                </p>
+              </div>
+
+              <Link
+                to="/contributions"
+                className={
+                  progress.contributionApproved
+                    ? "btn-secondary"
+                    : "btn-primary"
+                }
+              >
+                {progress.contributionApproved
+                  ? "View Contributions"
+                  : "Choose a Contribution"}
+              </Link>
+            </div>
+
             {[
-              ["Enrollment materials", progress.materialsAcknowledged],
+              ["Annual Meeting", progress.materialsAcknowledged],
               ["Membership dues", progress.duesSatisfied],
-              ["Contribution declared", progress.contributionDeclared],
-              ["Contribution approved", progress.contributionApproved],
+              // ["Contribution declared", progress.contributionDeclared],
+              // ["Contribution approved", progress.contributionApproved],
             ].map(([label, complete]) => (
               <div
                 key={label}
